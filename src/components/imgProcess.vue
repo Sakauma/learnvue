@@ -58,8 +58,10 @@
         <MainImageViewer v-if="selectedMode === 'singleFrame'"
                          class="viewer-component"
                          :image-url="singleFrameImageHandler.imageUrl.value"
+                         :image-name-to-display="singleFrameImageHandler.imageName.value"
                          :zoom-level="zoomLevel"
                          @request-file-select="triggerSingleFileInput"
+                         @file-selected="receiveFileFromMainViewer"
                          @delete-image="handleDeleteSingleFrameImage"
                          @zoom-in="zoomIn" @zoom-out="zoomOut"
                          @crop-confirmed="onSingleFrameCropConfirmed"
@@ -70,9 +72,8 @@
                           :zoom-level="zoomLevel"
                           @request-folder-select="triggerFolderInput"
                           @zoom-in="zoomIn" @zoom-out="zoomOut"
-                          @crop-confirmed="onMultiFrameCropConfirmed"
                           @current-frame-file-for-inference="handleCurrentFrameForInference"
-                          @delete-current-frame="handleDeleteCurrentMultiFrame"
+                          @delete-all-frames="handleClearAllMultiFrames"
                           ref="multiFrameSystemRef"
         />
         <ImageZoomSlider v-model="zoomLevel" />
@@ -93,7 +94,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue';
+import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElRow, ElCol, ElButton, ElSelect, ElOption } from 'element-plus';
 import { CloseBold } from '@element-plus/icons-vue';
@@ -173,19 +174,20 @@ function triggerFolderInput() {
   folderInputRef.value?.click();
 }
 
-function handleSingleFileSelected(event) {
-  const file = event.target.files?.[0];
-  console.log('[ImgProcess] handleSingleFileSelected CALLED with:', file ? file.name : file);
+function receiveFileFromMainViewer(file) {
   if (file) {
     // 清理多帧模式下的状态，以防万一
     if (multiFrameSystemRef.value && typeof multiFrameSystemRef.value.clearFrames === 'function') {
       multiFrameSystemRef.value.clearFrames();
     }
     currentMultiFrameFileForInference.value = null;
-    // 加载单帧图像
+
+    // 使用从 MainImageViewer 接收到的文件调用 handler
     singleFrameImageHandler.handleFileSelected(file);
+  } else {
+    notifications.showNotification('❌ 上传的文件无效。');
+    console.error('Received undefined or null file from MainImageViewer via file-selected event.');
   }
-  if (event.target) event.target.value = '';
 }
 
 function handleFolderSelected(event) {
@@ -207,12 +209,24 @@ function handleDeleteSingleFrameImage() {
   cropCoordinates.value = null;
 }
 
-function handleDeleteCurrentMultiFrame(/*file*/) { // file 参数可选，MultiFrameSystem 内部知道当前文件
-  if (multiFrameSystemRef.value && typeof multiFrameSystemRef.value.deleteCurrentFrameAndReload === 'function') { // 假设 MultiFrameSystem 内部有此方法
-    // multiFrameSystemRef.value.deleteCurrentFrameAndReload();
-    notifications.showNotification('多帧文件列表的删除功能尚未完全集成。', 2000)
-  } else {
-    notifications.showNotification('无法删除当前多帧图像。', 2000)
+function handleClearAllMultiFrames() {
+  if (selectedMode.value === 'multiFrame' && multiFrameSystemRef.value) {
+    multiFrameSystemRef.value.clearFrames(); // 调用 MultiFrameSystem 暴露的 clearFrames 方法
+    // 这个方法内部会调用 useMultiFrameLoader.clearFrames()
+    notifications.showNotification('所有图像已清除。');
+
+    // 重置 ImgProcess 中与多帧显示和推断相关的状态
+    currentMultiFrameFileForInference.value = null;
+    croppedImageUrl.value = null;
+    cropCoordinates.value = null; // 确保裁剪状态也被重置
+    if (inferenceHandler.resultImageUrl) inferenceHandler.resultImageUrl.value = null;
+    if (inferenceHandler.textResults) inferenceHandler.textResults.value = [];
+
+    // 重置图表 (如果需要)
+    if (chartGridRef.value && typeof chartGridRef.value.clearAllCharts === 'function') {
+      chartGridRef.value.clearAllCharts();
+    }
+    console.log('[ImgProcess] All multi-frame files and related states cleared.');
   }
 }
 
@@ -220,13 +234,6 @@ function onSingleFrameCropConfirmed({ croppedImageBase64, coordinates }) {
   croppedImageUrl.value = croppedImageBase64;
   cropCoordinates.value = coordinates;
   notifications.showNotification('✅ 单帧图像区域已截取');
-}
-function onMultiFrameCropConfirmed({ croppedImageBase64, coordinates, frameFile }) {
-  croppedImageUrl.value = croppedImageBase64; // 通用预览
-  // cropCoordinates.value = coordinates; // 如果识别时需要区分是哪一帧的裁剪
-  console.log('多帧图像裁剪确认:', frameFile.name, coordinates);
-  notifications.showNotification(`✅ 多帧图像 ${frameFile.name} 区域已截取`);
-  // 对于多帧，如果裁剪影响识别，可能需要将 coordinates 与 frameFile 关联起来
 }
 
 function handleCurrentFrameForInference(file) {
@@ -253,8 +260,7 @@ async function handleInfer() {
     if (multiFrameSystemRef.value && typeof multiFrameSystemRef.value.getCurrentFrameMD5 === 'function') {
       md5ToInfer = multiFrameSystemRef.value.getCurrentFrameMD5();
     }
-    // TODO: 多帧模式下，裁剪坐标可能需要与特定帧关联
-    // currentCropCoordinates = getCropCoordinatesForFrame(fileToInfer);
+
     console.log(`[ImgProcess] Inferring on multi-frame: ${fileToInfer.name}, MD5: ${md5ToInfer}`);
 
   } else { // Single-frame mode

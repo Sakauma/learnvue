@@ -1,10 +1,11 @@
 <template>
   <div class="image-container" ref="imageContainerRef">
-    <ImageDisplayControls
+    <SingleFrameSystem
         :is-cropping="isCroppingActive"
         :can-delete="!!imageUrl"
         :can-crop="!!imageUrl"
-        @file-selected="(file) => { console.log('[MainImageViewer] 从 ImageDisplayControls 接收到 file-selected 事件，准备再次发出给父组件，文件名为:', file?.name); $emit('file-selected', file); }"
+        :file-name="imageUrl ? imageNameFromProps : ''"
+        @file-selected="(file) => $emit('file-selected', file)"
         @delete-image="$emit('delete-image')"
         @zoom-in="$emit('zoom-in')"
         @zoom-out="$emit('zoom-out')"
@@ -33,11 +34,11 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue';
+import {computed, ref, watch} from 'vue';
 import { ElImage } from 'element-plus';
 import { Cropper } from 'vue-advanced-cropper';
 import 'vue-advanced-cropper/dist/style.css';
-import ImageDisplayControls from './imageDisplayControls.vue';
+import SingleFrameSystem from './singleFrameSystem.vue';
 
 const props = defineProps({
   imageUrl: String,
@@ -45,6 +46,7 @@ const props = defineProps({
     type: Number,
     default: 100,
   },
+  imageNameToDisplay: String,
 });
 
 const emit = defineEmits([
@@ -59,6 +61,7 @@ const imageContainerRef = ref(null);
 const mainImageRef = ref(null);
 const cropperRef = ref(null);
 const isCroppingActive = ref(false);
+const imageNameFromProps = computed(() => props.imageNameToDisplay);
 
 function toggleCropping() {
   if (!props.imageUrl) {
@@ -99,9 +102,10 @@ watch(() => props.imageUrl, (newUrl) => {
   display: flex;
   justify-content: center;
   border: 1px solid #ccc;
-  background-color: rgb(56, 56, 56); /* 修改为窗口背景颜色 */
+  background-color: rgb(56, 56, 56);
   overflow: hidden;
   transition: all 0.3s ease;
+  padding-top: 40px;
 }
 .responsive-image {
   max-width: 100%;
@@ -110,7 +114,7 @@ watch(() => props.imageUrl, (newUrl) => {
 }
 .image-placeholder {
   position: absolute;
-  top: 0; left: 0;
+  top: 20px; left: 0;
   width: 100%; height: 100%;
   display: flex;
   align-items: center;

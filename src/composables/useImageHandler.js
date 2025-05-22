@@ -1,4 +1,4 @@
-import { ref } from 'vue';
+import {ref} from 'vue';
 import SparkMD5 from 'spark-md5';
 
 const IMAGE_ROWS = 213;
@@ -51,64 +51,31 @@ function parseDatGrayscaleImage(datBuffer, rows, cols) {
     return canvas.toDataURL('image/png');
 }
 
+async function generateMD5ForFile(file) {
+    return new Promise((resolve, reject) => {
+        if (!file) {
+            resolve('');
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const buffer = e.target.result;
+                const md5 = SparkMD5.ArrayBuffer.hash(buffer);
+                resolve(md5);
+            } catch (error) {
+                console.error("MD5哈希计算出错:", error);
+                reject(error);
+            }
+        };
+        reader.onerror = (err) => {
+            console.error("FileReader读取出错:", err);
+            reject(err);
+        };
+        reader.readAsArrayBuffer(file);
+    });
+}
 
-// export function useImageHandler(showNotificationCallback) {
-//     const imageUrl = ref(null);
-//     const originalFile = ref(null);
-//     const fileMD5 = ref('');
-//     const imageName = ref('');
-//
-//     function generateMD5(file) {
-//         return new Promise((resolve, reject) => {
-//             const reader = new FileReader();
-//             reader.onload = (e) => {
-//                 try {
-//                     const buffer = e.target.result;
-//                     const md5 = SparkMD5.ArrayBuffer.hash(buffer);
-//                     resolve(md5);
-//                 } catch (error) {
-//                     reject(error);
-//                 }
-//             };
-//             reader.onerror = reject;
-//             reader.readAsArrayBuffer(file);
-//         });
-//     }
-//
-//     async function handleFileSelected(file) {
-//         if (!file) return;
-//
-//         // Reset state
-//         imageUrl.value = null;
-//         originalFile.value = null;
-//         fileMD5.value = '';
-//         imageName.value = '';
-//
-//         try {
-//             if (file.type.startsWith('image/')) {
-//                 imageUrl.value = URL.createObjectURL(file);
-//                 originalFile.value = file;
-//                 imageName.value = file.name;
-//                 fileMD5.value = await generateMD5(file);
-//             } else if (file.name.toLowerCase().endsWith('.dat')) {
-//                 const arrayBuffer = await file.arrayBuffer();
-//                 const dataURL = parseDatGrayscaleImage(arrayBuffer, IMAGE_ROWS, IMAGE_COLS);
-//                 if (dataURL) {
-//                     imageUrl.value = dataURL;
-//                     originalFile.value = file; // Keep original .dat file for sending to backend
-//                     imageName.value = file.name;
-//                     fileMD5.value = await generateMD5(file); // MD5 of the .dat file
-//                 } else {
-//                     showNotificationCallback('❌ 无法解析 .dat 文件中的图像数据，或文件格式不正确。');
-//                 }
-//             } else {
-//                 showNotificationCallback('❌ 不支持的文件类型。请选择图像文件 (image/*) 或 .dat 文件。');
-//             }
-//         } catch (error) {
-//             console.error("File handling error:", error);
-//             showNotificationCallback('❌ 处理文件时发生错误。');
-//         }
-//     }
 export function useImageHandler(showNotificationCallback) {
     const imageUrl = ref(null);
     const originalFile = ref(null);
@@ -116,9 +83,8 @@ export function useImageHandler(showNotificationCallback) {
     const imageName = ref('');
 
     async function handleFileSelected(file) {
-        console.log('[useImageHandler (singleFrame)] handleFileSelected CALLED with file:', file ? { name: file.name, type: file.type, size: file.size } : file); // <-- 日志4
         if (!file) {
-            console.warn('[useImageHandler (singleFrame)] handleFileSelected called with no file.');
+            console.warn('handleFileSelected called with no file.');
             return;
         }
 
@@ -130,54 +96,33 @@ export function useImageHandler(showNotificationCallback) {
         originalFile.value = null;
         fileMD5.value = '';
         imageName.value = '';
-        console.log('[useImageHandler (singleFrame)] State reset before processing new file.');
 
         try {
             if (file.type.startsWith('image/')) {
-                console.log('[useImageHandler (singleFrame)] Processing as standard image type.');
-                const blobUrl = URL.createObjectURL(file); // 在赋值前先存到变量
-                console.log('[useImageHandler (singleFrame)] createObjectURL result:', blobUrl); // <-- 日志5
-                imageUrl.value = blobUrl;
+                imageUrl.value = URL.createObjectURL(file);
             } else if (file.name.toLowerCase().endsWith('.dat')) {
-                console.log('[useImageHandler (singleFrame)] Processing as .dat file.');
-                console.time('[Perf useImageHandler (singleFrame)] file.arrayBuffer() for .dat');
                 const arrayBuffer = await file.arrayBuffer();
-                console.timeEnd('[Perf useImageHandler (singleFrame)] file.arrayBuffer() for .dat');
-                console.log(`[useImageHandler (singleFrame)] .dat ArrayBuffer read (length: ${arrayBuffer?.byteLength}). Parsing...`);
-
-                console.time('[Perf useImageHandler (singleFrame)] parseDatGrayscaleImage()');
                 const dataURL = parseDatGrayscaleImage(arrayBuffer, IMAGE_ROWS, IMAGE_COLS);
-                console.timeEnd('[Perf useImageHandler (singleFrame)] parseDatGrayscaleImage()');
 
                 if (dataURL) {
-                    console.log('[useImageHandler (singleFrame)] parseDatGrayscaleImage result (first 50 chars):', dataURL.substring(0, 50)); // <-- 日志6
                     imageUrl.value = dataURL;
                 } else {
                     showNotificationCallback('❌ 无法解析 .dat 文件中的图像数据，或文件格式不正确。');
-                    console.error('[useImageHandler (singleFrame)] parseDatGrayscaleImage returned null or empty.');
                 }
             } else {
                 showNotificationCallback('❌ 不支持的文件类型。请选择图像文件 (image/*) 或 .dat 文件。');
-                console.warn('[useImageHandler (singleFrame)] Unsupported file type:', file.type, file.name);
                 return;
             }
 
             if (imageUrl.value) {
                 originalFile.value = file;
                 imageName.value = file.name;
-                console.log(`[useImageHandler (singleFrame)] originalFile and imageName set. imageUrl.value (first 50 chars): ${imageUrl.value.substring(0,50)}. Generating MD5 for ${file.name}...`); // <-- 日志7
-                generateMD5(file).then(md5 => {
-                    fileMD5.value = md5;
-                    console.log(`[useImageHandler (singleFrame)] MD5 for ${file.name} generated: ${md5}`);
-                }).catch(err => {
-                    console.error(`[useImageHandler (singleFrame)] Error generating MD5 for ${file.name}:`, err);
-                });
+                fileMD5.value = await generateMD5ForFile(file);
             } else {
-                console.warn('[useImageHandler (singleFrame)] imageUrl.value is still null/empty after processing. MD5 and other states not set.'); // <-- 日志8
             }
 
         } catch (error) {
-            console.error("[useImageHandler (singleFrame)] Error in handleFileSelected:", error); // <-- 日志9
+            console.error("Error in handleFileSelected:", error); // <-- 日志9
             showNotificationCallback('❌ 处理文件时发生错误。');
             if (imageUrl.value && imageUrl.value.startsWith('blob:')) { URL.revokeObjectURL(imageUrl.value); }
             imageUrl.value = null; originalFile.value = null; fileMD5.value = ''; imageName.value = '';

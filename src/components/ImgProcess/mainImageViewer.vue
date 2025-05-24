@@ -91,7 +91,6 @@ watch(() => props.imageUrl, (newUrl) => {
     isCroppingActive.value = false; // Turn off cropper if image is deleted
   }
 });
-
 </script>
 
 <style scoped>

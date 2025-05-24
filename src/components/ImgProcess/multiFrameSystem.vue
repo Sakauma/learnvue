@@ -203,7 +203,7 @@ defineExpose({ loadFolder, clearFrames, getCurrentFrameFileForInference, getCurr
 .image-display-area {
   position: relative;
   width: 100%;
-  height: 55.5vh;
+  height: 60vh;
   display: flex;
   justify-content: center;
   background-color: rgb(56, 56, 56);

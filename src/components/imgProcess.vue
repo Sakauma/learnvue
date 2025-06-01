@@ -111,6 +111,7 @@
                           :zoom-level="zoomLevel"
                           :image-rows="imageRows"
                           :image-cols="imageCols"
+                          :featuresdata="allFeaturesData"
                           @request-folder-select="triggerFolderDialogForPathHint"
                           @zoom-in="zoomIn" @zoom-out="zoomOut"
                           @delete-all-frames="handleClearAllMultiFrames"
@@ -158,6 +159,7 @@ import ImageZoomSlider from './ImgProcess/imageZoomSlider.vue';
 import ResultsDisplay from './ImgProcess/resultsDisplay.vue';
 import ChartGird from './ImgProcess/chartGird.vue';
 import AppNotification from './ImgProcess/appNotification.vue';
+import ResultData from './ImgProcess/resultData.vue';
 
 
 const router = useRouter();

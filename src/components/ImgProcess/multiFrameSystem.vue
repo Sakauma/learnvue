@@ -45,20 +45,30 @@
       <div v-if="previewLoader.isLoadingFrame.value" class="image-placeholder">原始图像加载中...</div>
     </div>
   </div>
+  <div>
+    <ResultData
+        :idx="currentNavigationIndex"
+        :datamode="isInResultsMode"
+        :datavalue="featuresdata"
+    />
+  </div>
 </template>
 
 <script setup>
+// TODO: 临时位置，后续需要修改（48行）
 import { computed, watch } from 'vue';
 import { ElImage, ElButton, ElSlider } from 'element-plus';
 import { Upload, Delete, ZoomIn, ZoomOut, ArrowLeftBold, ArrowRightBold } from '@element-plus/icons-vue';
 import { useMultiFrameLoader } from '../../composables/useMultiFrameLoader';
-import { useNotifications } from '../../composables/useNotifications';
+import { useNotifications } from '../../composables/useNotifications'
+import ResultData from './resultData.vue'
 
 const props = defineProps({
   zoomLevel: { type: Number, default: 100 },
   imageRows: { type: Number, required: true },
   imageCols: { type: Number, required: true },
   actualResultFrameCount: { type: Number, default: 0 },
+  featuresdata: { type: Object, required: true},
   currentResultFrameIndex: { type: Number, default: -1 }
 });
 
@@ -206,7 +216,8 @@ defineExpose({
   flex-direction: column;
   width: 100%;
   border: 1px solid #ccc;
-  height: 60vh;
+  /*height: 60vh;*/
+  height: 40vh;
 }
 
 .controls-bar-area {

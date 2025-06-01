@@ -55,7 +55,7 @@
 </template>
 
 <script setup>
-// TODO: 临时位置，后续需要修改（48行）
+// TODO: 临时位置，后续需要修改（第48行起是位置）
 import { computed, watch } from 'vue';
 import { ElImage, ElButton, ElSlider } from 'element-plus';
 import { Upload, Delete, ZoomIn, ZoomOut, ArrowLeftBold, ArrowRightBold } from '@element-plus/icons-vue';

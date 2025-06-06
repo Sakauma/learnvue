@@ -109,10 +109,11 @@ const emptyText = computed(() => {
   background-color: rgb(21, 45, 81);
   border-radius: 6px;
   color: white;
-  margin-top: 10px;
+  margin-top: 3px;
   font-weight: bold;
   box-sizing: border-box;
   overflow: hidden;
+  margin-bottom: 16px;
 }
 
 .table-header-wrapper {

@@ -37,7 +37,12 @@ export default defineConfig({
                 changeOrigin: true,
                 secure: false,
                 //rewrite: (path) => path.replace(/^\/api/, '')
+            },
+            '/sse': { // 新增 SSE 代理规则
+                target: 'http://localhost:8081',
+                changeOrigin: true,
             }
+
         }
     }
 })

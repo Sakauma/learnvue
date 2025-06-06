@@ -18,7 +18,6 @@
           <el-option label="单帧模式" value="singleFrame"></el-option>
           <el-option label="多帧模式" value="multiFrame"></el-option>
         </el-select>
-
         <AlgorithmSelector
             v-model:algorithmType="selectedAlgorithmType"
             v-model:specificAlgorithm="selectedSpecificAlgorithm"
@@ -40,30 +39,32 @@
     </el-row>
 
     <el-row :gutter="10" class="additional-inputs-row image-params-row" align="middle">
-      <el-col :span="12"> <el-row :gutter="12" align="middle">
-        <el-col :span="12">
-          <div class="param-input-group">
-            <span class="param-label">图像行数 (Rows):</span>
-            <el-input-number v-model="imageRows" :min="1" controls-position="right" class="param-input-number" placeholder="行数"></el-input-number>
-          </div>
-        </el-col>
-        <el-col :span="12">
-          <div class="param-input-group">
-            <span class="param-label">图像列数 (Cols):</span>
-            <el-input-number v-model="imageCols" :min="1" controls-position="right" class="param-input-number" placeholder="列数"></el-input-number>
-          </div>
-        </el-col>
-      </el-row>
+      <el-col :span="12">
+        <el-row :gutter="12" align="middle">
+          <el-col :span="12">
+            <div class="param-input-group">
+              <span class="param-label">图像行数 (Rows):</span>
+              <el-input-number v-model="imageRows" :min="1" controls-position="right" class="param-input-number" placeholder="行数"></el-input-number>
+            </div>
+          </el-col>
+          <el-col :span="12">
+            <div class="param-input-group">
+              <span class="param-label">图像列数 (Cols):</span>
+              <el-input-number v-model="imageCols" :min="1" controls-position="right" class="param-input-number" placeholder="列数"></el-input-number>
+            </div>
+          </el-col>
+        </el-row>
       </el-col>
-      <el-col :span="12" v-if="isMultiFrameMode"> <div style="display: flex; align-items: center; justify-content: flex-start; height: 100%; padding-left: 0;">
-        <el-button
-            class="generate-curves-button"
-            @click="handleGenerateCurves"
-            :disabled="isInferenceLoading"
-            style="margin-left: 10px;"
-        >生成曲线
-        </el-button>
-      </div>
+      <el-col :span="12" v-if="isMultiFrameMode">
+        <div style="display: flex; align-items: center; justify-content: flex-start; height: 100%; padding-left: 0;">
+          <el-button
+              class="generate-curves-button"
+              @click="handleGenerateCurves"
+              :disabled="isInferenceLoading"
+              style="margin-left: 10px;"
+          >生成曲线
+          </el-button>
+        </div>
       </el-col>
     </el-row>
 
@@ -78,22 +79,11 @@
       </el-col>
     </el-row>
 
-    <input
-        type="file"
-        ref="singleFileInputRef"
-        style="display: none"
-        @change="handleSingleFileSelected"
-        accept="image/*,.dat,.tif,.tiff,.bmp,.gif,.jpeg,.jpg,.png"
-    />
-    <input
-        type="file"
-        ref="folderInputRef"
-        style="display: none"
-        webkitdirectory directory multiple
-        @change="handleFolderSelectedViaDialog"
-    />
+    <input type="file" ref="singleFileInputRef" style="display: none" @change="handleSingleFileSelected" accept="image/*,.dat,.tif,.tiff,.bmp,.gif,.jpeg,.jpg,.png" />
+    <input type="file" ref="folderInputRef" style="display: none" webkitdirectory directory multiple @change="handleFolderSelectedViaDialog" />
 
     <el-row :gutter="20" class="main-content-row">
+
       <el-col :span="12" class="image-col">
         <MainImageViewer v-if="!isMultiFrameMode"
                          class="viewer-component"
@@ -111,25 +101,41 @@
                           :zoom-level="zoomLevel"
                           :image-rows="imageRows"
                           :image-cols="imageCols"
-                          :featuresdata="allFeaturesData"
                           @request-folder-select="triggerFolderDialogForPathHint"
                           @zoom-in="zoomIn" @zoom-out="zoomOut"
                           @delete-all-frames="handleClearAllMultiFrames"
                           ref="multiFrameSystemRef"
-
                           :actualResultFrameCount="numberOfResultFrames"
                           v-model:currentResultFrameIndex="currentMultiFrameIndex"
         />
+
         <ImageZoomSlider v-model="zoomLevel" />
         <ResultsDisplay
             :cropped-image-url="currentDisplayCroppedOrInterestImageUrl"
             :result-image-url="currentDisplayResultImageUrl"
             :text-results="currentDisplayTextResults"
         />
-      </el-col>
 
+        <backendLogs
+            :logs="parsedLogs"
+            :connectionStatus="connectionStatus"
+            :connectionAttempts="connectionAttempts"
+            @toggle-connection="toggleSseConnection"
+            @clear-logs="clearAllLogsAndReports"
+            style="margin-top: 20px;"
+        />
+      </el-col>
       <el-col :span="12" class="chart-col">
         <ChartGird ref="chartGridRef" />
+        <ResultData
+            :idx="currentMultiFrameIndex"
+            :datamode="isResultsModeActive"
+            :datavalue="allFeaturesData"
+        />
+        <algorithmReport
+            ref="reportRef"
+            :logs="parsedLogs"
+        />
       </el-col>
     </el-row>
 
@@ -138,17 +144,18 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import axios from 'axios';
 import { ElRow, ElCol, ElButton, ElSelect, ElOption, ElInput, ElInputNumber } from 'element-plus';
 import { CloseBold } from '@element-plus/icons-vue';
 
 // Composables
-import { useNotifications } from '../composables/useNotifications';
-import { useImageHandler } from '../composables/useImageHandler';
-import { useInference } from '../composables/useInference';
+import { useNotifications } from '../composables/useNotifications.js';
+import { useImageHandler } from '../composables/useImageHandler.js';
+import { useInference } from '../composables/useInference.js';
 import { useMultiFrameResult } from '../composables/useMultiFrameResult.js';
+import { useSseLogs } from '../composables/useSseLogs.js';
 
 // Components
 import AlgorithmSelector from './ImgProcess/algorithmSelector.vue';
@@ -160,6 +167,8 @@ import ResultsDisplay from './ImgProcess/resultsDisplay.vue';
 import ChartGird from './ImgProcess/chartGird.vue';
 import AppNotification from './ImgProcess/appNotification.vue';
 import ResultData from './ImgProcess/resultData.vue';
+import backendLogs from './ImgProcess/backendLogs.vue';
+import algorithmReport from './ImgProcess/algorithmReport.vue';
 
 
 const router = useRouter();
@@ -183,6 +192,10 @@ const currentMultiFrameIndex = ref(-1);
 
 const imageRows = ref(240);
 const imageCols = ref(320);
+
+const { lastLog, connectionStatus, connectionAttempts, connect, disconnect } = useSseLogs('/sse/logs');
+const parsedLogs = ref([]);
+const reportRef = ref(null);
 
 const {
   interestImageUrl: multiFrameInterestUrl,
@@ -228,6 +241,8 @@ const numberOfResultFrames = computed(() => { //
   }
   return 0;
 });
+
+const isResultsModeActive = computed(() => numberOfResultFrames.value > 0);
 
 const handleModeChange = (newMode) => {
   notifications.showNotification(`模式已切换为: ${newMode === 'singleFrame' ? '单帧模式' : '多帧模式'}`);
@@ -651,6 +666,47 @@ watch(currentMultiFrameIndex, (newResultIndex) => {
     }
   }
 });
+
+// 日志部分
+let logIdCounter = 0;
+const logRegex = /^(?<timestamp>\d{2}:\d{2}:\d{2}\.\d{3})\s+\[(?<thread>[^\]]+)\]\s+(?<level>\w+)\s+(?<logger>[^\s-]+)\s+-\s+(?<message>.*)$/;
+const parseLog = (logString) => {
+  const match = logString.match(logRegex);
+  logIdCounter++;
+  if (match && match.groups) {
+    return { ...match.groups, raw: logString, id: logIdCounter };
+  }
+  return {
+    timestamp: new Date().toLocaleTimeString('en-GB'),
+    thread: '?', level: 'INFO', logger: 'RAW',
+    message: logString, raw: logString, id: logIdCounter,
+  };
+};
+
+// 监听从 SSE 收到的新日志
+watch(lastLog, (newLogData) => {
+  if (newLogData && newLogData.data) {
+    const parsedLog = parseLog(newLogData.data);
+    parsedLogs.value.push(parsedLog);
+  }
+});
+
+// 控制连接
+const toggleSseConnection = () => {
+  if (connectionStatus.value === 'connected') {
+    disconnect();
+  } else {
+    // 在重新连接或手动连接时，可能需要清空旧日志
+    parsedLogs.value = [];
+    if (reportRef.value) {
+      reportRef.value.clearReports();
+    }
+    connect();
+  }
+};
+
+onMounted(connect);
+onUnmounted(disconnect);
 
 </script>
 

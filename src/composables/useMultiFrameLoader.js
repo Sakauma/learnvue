@@ -1,6 +1,6 @@
 import { ref, computed, onUnmounted } from 'vue';
 import SparkMD5 from 'spark-md5';
-import { parseDatGrayscaleImage } from './useDataParser.js';
+import { parseDatFileWithWorker } from './useDatParser.js';
 
 async function generateMD5ForFile(file) {
     return new Promise((resolve, reject) => {
@@ -88,7 +88,7 @@ export function useMultiFrameLoader(showNotificationCallback) {
                 } else {
                     const arrayBuffer = await fileToLoad.arrayBuffer();
                     if (arrayBuffer && arrayBuffer.byteLength > 0) {
-                        newImageUrl = parseDatGrayscaleImage(arrayBuffer, currentImageRows.value, currentImageCols.value, currentPrecision.value);
+                        newImageUrl = await parseDatFileWithWorker(arrayBuffer, currentImageRows.value, currentImageCols.value, currentPrecision.value);
                         if (!newImageUrl) {
                             showNotificationCallback(`❌ 无法解析 .dat 文件: ${fileToLoad.name}`);
                         }

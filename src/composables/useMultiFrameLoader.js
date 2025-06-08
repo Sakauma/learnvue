@@ -1,49 +1,6 @@
 import { ref, computed, onUnmounted } from 'vue';
 import SparkMD5 from 'spark-md5';
-
-function parseDatGrayscaleImage(datBuffer, rows, cols) {
-    if (!datBuffer || !(datBuffer instanceof ArrayBuffer)) {
-        console.error("Invalid datBuffer provided.");
-        return null;
-    }
-    if (rows <= 0 || cols <= 0) {
-        console.error("Invalid dimensions provided (rows/cols must be > 0).");
-        return null;
-    }
-    if (datBuffer.byteLength < rows * cols * Float64Array.BYTES_PER_ELEMENT) {
-        console.error(`datBuffer is too short (length: ${datBuffer.byteLength}) for specified dimensions (${rows}x${cols}) and Float64Array type.`);
-        return null;
-    }
-    const pixelData = new Float64Array(datBuffer);
-    const totalPixels = rows * cols;
-
-    let maxVal = -Infinity, minVal = Infinity;
-    for (let i = 0; i < totalPixels; i++) {
-        if (pixelData[i] > maxVal) maxVal = pixelData[i];
-        if (pixelData[i] < minVal) minVal = pixelData[i];
-    }
-    const range = maxVal - minVal;
-    const allSameValue = range === 0;
-    const canvas = document.createElement('canvas');
-    canvas.width = cols;
-    canvas.height = rows;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) {
-        console.error("Failed to get 2D context from canvas.");
-        return null;
-    }
-    const imageData = ctx.createImageData(cols, rows);
-    for (let i = 0; i < totalPixels; i++) {
-        let val = allSameValue ? 128 : (pixelData[i] - minVal) / range * 255;
-        val = Math.round(Math.max(0, Math.min(255, val)));
-        imageData.data[i * 4] = val;
-        imageData.data[i * 4 + 1] = val;
-        imageData.data[i * 4 + 2] = val;
-        imageData.data[i * 4 + 3] = 255;
-    }
-    ctx.putImageData(imageData, 0, 0);
-    return canvas.toDataURL('image/png');
-}
+import { parseDatGrayscaleImage } from './useDataParser.js';
 
 async function generateMD5ForFile(file) {
     return new Promise((resolve, reject) => {
@@ -81,7 +38,8 @@ export function useMultiFrameLoader(showNotificationCallback) {
     const isLoadingFrame = ref(false);
 
     const currentImageRows = ref(0);
-    const currentImageCols = ref(0)
+    const currentImageCols = ref(0);
+    const currentPrecision = ref('float64');
 
     const totalFrames = computed(() => fileList.value.length);
     const currentFrameFile = computed(() => currentFrameFileInternal.value);
@@ -130,7 +88,7 @@ export function useMultiFrameLoader(showNotificationCallback) {
                 } else {
                     const arrayBuffer = await fileToLoad.arrayBuffer();
                     if (arrayBuffer && arrayBuffer.byteLength > 0) {
-                        newImageUrl = parseDatGrayscaleImage(arrayBuffer, currentImageRows.value, currentImageCols.value);
+                        newImageUrl = parseDatGrayscaleImage(arrayBuffer, currentImageRows.value, currentImageCols.value, currentPrecision.value);
                         if (!newImageUrl) {
                             showNotificationCallback(`❌ 无法解析 .dat 文件: ${fileToLoad.name}`);
                         }
@@ -170,7 +128,7 @@ export function useMultiFrameLoader(showNotificationCallback) {
         return currentFrameFileInternal.value;
     }
 
-    async function processSelectedFiles(htmlFileList, rows, cols) {
+    async function processSelectedFiles(htmlFileList, rows, cols, precision) {
         if (isLoadingFrame.value) {
             showNotificationCallback("⚠️ 正在加载其他帧，请稍后再选择文件夹。");
             return;
@@ -183,6 +141,7 @@ export function useMultiFrameLoader(showNotificationCallback) {
         }
         currentImageRows.value = rows;
         currentImageCols.value = cols;
+        currentPrecision.value = precision;
 
         const acceptedFiles = [];
         const imageExtensions = ['.jpg', '.jpeg', '.png', '.bmp', '.gif', '.dat', '.tif', '.tiff'];

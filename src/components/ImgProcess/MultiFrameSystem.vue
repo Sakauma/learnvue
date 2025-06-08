@@ -168,9 +168,9 @@ function requestFolderSelectionForPreview() {
 watch(previewLoader.currentFrameFile, (newFile) => {
 }, {deep: true});
 
-function loadFolderForPreview(htmlFileList) {
+function loadFolderForPreview(htmlFileList, precision) {
   if (props.imageRows > 0 && props.imageCols > 0) {
-    previewLoader.processSelectedFiles(htmlFileList, props.imageRows, props.imageCols);
+    previewLoader.processSelectedFiles(htmlFileList, props.imageRows, props.imageCols, precision);
     if (!isInResultsMode.value && previewLoader.totalFrames.value > 0) {
     }
   } else {

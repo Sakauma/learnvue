@@ -55,6 +55,19 @@
           </el-col>
         </el-row>
       </el-col>
+
+      <el-col :span="6">
+        <div class="param-input-group">
+          <span class="param-label">数据精度:</span>
+          <el-select v-model="selectedPrecision" class="param-input-select">
+            <el-option label="64位浮点" value="float64" />
+            <el-option label="32位浮点" value="float32" />
+            <el-option label="16位整型" value="uint16" />
+            <el-option label="8位整型" value="uint8" />
+          </el-select>
+        </div>
+      </el-col>
+
       <el-col :span="12" v-if="isMultiFrameMode">
         <div style="display: flex; align-items: center; justify-content: flex-start; height: 100%; padding-left: 0;">
           <el-button
@@ -191,6 +204,7 @@ const currentMultiFrameIndex = ref(-1);
 
 const imageRows = ref(240);
 const imageCols = ref(320);
+const selectedPrecision = ref('float64');
 
 const {logs: parsedLogs, connectionStatus, connectionAttempts, connect, disconnect, clearLogs} = useSseLogs('/sse/logs');
 const reportRef = ref(null);
@@ -301,7 +315,7 @@ function handleFolderSelectedViaDialog(event) {
 
     if (multiFrameSystemRef.value && typeof multiFrameSystemRef.value.loadFolder === 'function') {
       if (imageRows.value > 0 && imageCols.value > 0) {
-        multiFrameSystemRef.value.loadFolder(files);
+        multiFrameSystemRef.value.loadFolder(files, selectedPrecision.value);
       } else {
         notifications.showNotification('❌ 请先设置有效的图像行数和列数才能加载文件夹预览。', 2000);
       }
@@ -337,7 +351,7 @@ function receiveFileFromMainViewer(file) {
     currentMultiFrameIndex.value = -1;
 
     if (imageRows.value > 0 && imageCols.value > 0) {
-      singleFrameImageHandler.handleFileSelected(file, imageRows.value, imageCols.value);
+      singleFrameImageHandler.handleFileSelected(file, imageRows.value, imageCols.value, selectedPrecision.value);
     } else {
       notifications.showNotification('❌ 请先设置有效的图像行数和列数。', 2000);
     }

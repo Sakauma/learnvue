@@ -1,8 +1,8 @@
 /*ChartGrid.vue*/
 <template>
   <div class="chart-container">
-    <div v-for="(featureKey, index) in displayedFeatureKeys" :key="featureKey" class="chart-box">
-      <div class="chart-header">{{ chartTitles[index] }}</div>
+    <div v-for="(config, index) in featureConfig" :key="config.key" class="chart-box">
+      <div class="chart-header">{{ config.label }}</div>
       <div :ref="el => chartRefs[index] = el" class="chart"></div>
     </div>
   </div>
@@ -15,35 +15,37 @@ import { useChart } from "../../composables/useCharts.js";
 const chartRefs = ref(new Array(6).fill(null)); // 初始化为包含6个null的数组
 const chartUpdaters = ref([]);
 
-const displayedFeatureKeys = [
-  "variance",
-  "mean_region",
-  "SCR",
-  "contrast",
-  "entropy",
-  "homogeneity"
+const featureConfig = [
+  { key: "variance",    label: "方差" },
+  { key: "mean_region", label: "均值" },
+  { key: "SCR",         label: "信杂比" },
+  { key: "contrast",    label: "对比度" },
+  { key: "entropy",     label: "信息熵" },
+  { key: "homogeneity", label: "同质性" }
 ];
 
+
 const chartTitles = computed(() => {
-  return displayedFeatureKeys.map(key => key.toUpperCase().replace("_", " "));
+  return featureConfig.map(item => item.label);
 });
 
 onMounted(() => {
-  displayedFeatureKeys.forEach((key, index) => {
+  featureConfig.forEach((config, index) => {
     const domElement = chartRefs.value[index];
     if (domElement) {
-      const chartComposableRef = ref(domElement); // 将 DOM 元素包装在 ref 中
+      const chartComposableRef = ref(domElement);
       const { updateChartData, isInitialized } = useChart(chartComposableRef, index);
       chartUpdaters.value[index] = {
         updateFunc: updateChartData,
         getIsInitialized: () => isInitialized.value,
-        featureKey: key
+        featureKey: config.key
       };
     } else {
-      console.error(`chartRefs.value[${index}] (for feature ${key}) is not yet available.`);
+      console.error(`chartRefs.value[${index}] (for feature ${config.key}) is not yet available.`);
     }
   });
 });
+
 
 function updateAllChartsWithFeatureData(allFeaturesMap) {
   if (!allFeaturesMap || typeof allFeaturesMap !== 'object') {
@@ -53,9 +55,9 @@ function updateAllChartsWithFeatureData(allFeaturesMap) {
   }
   console.log("接收到所有特征数据，准备更新图表:", allFeaturesMap);
 
-  for (let i = 0; i < displayedFeatureKeys.length; i++) {
-    const featureKey = displayedFeatureKeys[i];
-    const chartTitle = chartTitles.value[i];
+  for (let i = 0; i < featureConfig.length; i++) {
+    const featureKey = featureConfig[i].key;
+    const chartTitle = featureConfig[i].label;
     const updaterObj = chartUpdaters.value[i];
 
     if (!updaterObj) {
@@ -72,13 +74,13 @@ function updateAllChartsWithFeatureData(allFeaturesMap) {
             const numPoints = yValues.length;
             const xValues = Array.from({ length: numPoints }, (_, k) => k);
             const seriesData = yValues.map((y, index) => [xValues[index], parseFloat(y) || 0]);
-            updaterObj.updateFunc(seriesData, chartTitle);
+            updaterObj.updateFunc(seriesData, `${chartTitle} 数据曲线`);
           } else {
-            updaterObj.updateFunc([], chartTitle + " (无数据)");
+            updaterObj.updateFunc([], `${chartTitle} 数据曲线 (无数据)`);
           }
         } else {
           console.warn(`特征 "${featureKey}" 的数据无效或未在 allFeaturesMap 中找到。图表 ${i} 将显示无数据。`);
-          updaterObj.updateFunc([], chartTitle + " (无数据)");
+          updaterObj.updateFunc([], `${chartTitle} 数据曲线 (无数据)`);
         }
       } else {
         console.warn(`图表 ${i} (${featureKey}) 尚未初始化，无法更新。`);
@@ -90,11 +92,11 @@ function updateAllChartsWithFeatureData(allFeaturesMap) {
 }
 
 function clearAllCharts() {
-  for (let i = 0; i < displayedFeatureKeys.length; i++) {
+  for (let i = 0; i < featureConfig.length; i++) {
     const updaterObj = chartUpdaters.value[i];
-    const chartTitle = chartTitles.value[i] || `图表 ${i+1}`;
+    const chartTitle = featureConfig[i].label || `图表 ${i+1}`;
     if (updaterObj && updaterObj.updateFunc && typeof updaterObj.updateFunc === 'function' && updaterObj.getIsInitialized()) {
-      updaterObj.updateFunc([], chartTitle + " (无数据)");
+      updaterObj.updateFunc([], `${chartTitle} 数据曲线 (无数据)`);
     }
   }
 }
@@ -123,6 +125,7 @@ defineExpose({ updateAllChartsWithFeatureData, clearAllCharts });
   overflow: hidden;
 }
 .chart-header {
+  font-family: "Microsoft YaHei", sans-serif;
   height: 30px;
   line-height: 30px;
   padding: 0 10px;

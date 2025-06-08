@@ -42,23 +42,24 @@ const props = defineProps({
   },
 });
 
-const defaultFeatureKeys = [
-  { name: "variance", key: "variance" },
-  { name: "mean_region", key: "mean_region" },
-  { name: "SCR", key: "SCR" },
-  { name: "contrast", key: "contrast" },
-  { name: "entropy", key: "entropy" },
-  { name: "smoothness", key: "smoothness" },
-  { name: "skewness", key: "skewness" },
-  { name: "kurtosis", key: "kurtosis" },
-  { name: "xjy_area", key: "xjy_area" },
-  { name: "peak_cell_intensity", key: "peak_cell_intensity" },
-  { name: "xjy_background_intensity", key: "xjy_background_intensity" },
+const featureKeys = [
+  { name: "方差", key: "variance" },
+  { name: "均值", key: "mean_region" },
+  { name: "信杂比", key: "SCR" },
+  { name: "对比度", key: "contrast" },
+  { name: "信息熵", key: "entropy" },
+  { name: "同质性", key: "homogeneity" },
+  { name: "平滑性", key: "smoothness" },
+  { name: "偏度", key: "skewness" },
+  { name: "峰度", key: "kurtosis" },
+  { name: "目标XJY所占像素数", key: "xjy_area" },
+  { name: "峰单元强度", key: "peak_cell_intensity" },
+  { name: "XJY背景强度", key: "xjy_background_intensity" },
 ];
 
 const tableData = computed(() => {
   if (!props.dataMode) {
-    return defaultFeatureKeys.map(feature => ({
+    return featureKeys.map(feature => ({
       name: feature.name,
       displayValue: 'N/A',
     }));
@@ -66,13 +67,13 @@ const tableData = computed(() => {
 
   const hasData = props.dataValue && Object.keys(props.dataValue).length > 0;
   if (!hasData) {
-    return defaultFeatureKeys.map(feature => ({
+    return featureKeys.map(feature => ({
       name: feature.name,
       displayValue: 'N/A',
     }));
   }
 
-  return defaultFeatureKeys.map(feature => {
+  return featureKeys.map(feature => {
     const featureRawValue = props.dataValue[feature.key];
     let displayValue = 'N/A'; // 默认值
 

@@ -116,29 +116,30 @@ export function useChart(chartRef, chartIndex) {
     };
 
     // newData: 期望格式为 [[x,y], [x,y], ...]
-    const updateChart = (newChartData) => {
+    const updateChart = (newChartData, seriesName = '数据曲线') => {
         if (chartInstance && isInitialized.value && !chartInstance.isDisposed()) {
             const newOption = {
                 xAxis: { // 允许X轴根据新数据自动调整范围
                     type: 'value', // 确保类型不变或按需设置
                     min: null,     // 设置为null或不设置，ECharts会根据数据自动计算 'dataMin'
                     max: null,     // 设置为null或不设置，ECharts会根据数据自动计算 'dataMax'
-                    // 保留其他X轴样式配置
                     name: 'X轴', nameLocation: 'middle', nameGap: 25, axisLabel: {formatter: '{value}'}
                 },
                 yAxis: { // 允许Y轴根据新数据自动调整范围
                     type: 'value',
                     min: null,
                     max: null,
-                    // 保留其他Y轴样式配置
                     name: 'Y轴', nameLocation: 'middle', nameGap: 30, axisLabel: {formatter: '{value}'}
                 },
                 legend: {
-                    data: ['后端数据曲线'] // 可以更换名称
+                    data: [seriesName],
+                    textStyle: {
+                        color: 'white'
+                    }
                 },
                 series: [
                     {
-                        name: '后端数据曲线',
+                        name: seriesName,
                         type: 'line',
                         data: newChartData || [],
                         smooth: true,

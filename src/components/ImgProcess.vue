@@ -115,14 +115,12 @@
             :result-image-url="currentDisplayResultImageUrl"
             :text-results="currentDisplayTextResults"
         />
-
         <BackendLogs
             :logs="parsedLogs"
             :connectionStatus="connectionStatus"
             :connectionAttempts="connectionAttempts"
             @toggle-connection="toggleSseConnection"
             @clear-logs="clearAllLogsAndReports"
-            style="margin-top: 20px;"
         />
       </el-col>
       <el-col :span="12" class="chart-col">
@@ -150,14 +148,15 @@ import axios from 'axios';
 import { ElRow, ElCol, ElButton, ElSelect, ElOption, ElInput, ElInputNumber } from 'element-plus';
 import { CloseBold } from '@element-plus/icons-vue';
 
-// Composables
+// composable
 import { useNotifications } from '../composables/useNotifications.js';
 import { useImageHandler } from '../composables/useImageHandler.js';
 import { useInference } from '../composables/useInference.js';
 import { useMultiFrameResult } from '../composables/useMultiFrameResult.js';
 import { useSseLogs } from '../composables/useSseLogs.js';
+import {useZoom } from "../composables/useZoom.js";
 
-// Components
+// component
 import AlgorithmSelector from './ImgProcess/AlgorithmSelector.vue';
 import ActionButtons from './ImgProcess/ActionButtons.vue';
 import MainImageViewer from './ImgProcess/MainImageViewer.vue';
@@ -173,13 +172,13 @@ import AlgorithmReport from './ImgProcess/AlgorithmReport.vue';
 
 const router = useRouter();
 const notifications = useNotifications();
+const { zoomLevel, zoomIn, zoomOut } = useZoom();
 const singleFrameImageHandler = useImageHandler(notifications.showNotification);
 const inferenceHandler = useInference(notifications.showNotification);
 
 const selectedMode = ref('singleFrame');
 const selectedAlgorithmType = ref('');
 const selectedSpecificAlgorithm = ref('');
-const zoomLevel = ref(100);
 
 const croppedImageUrl = ref(null);
 const cropCoordinates = ref(null);
@@ -193,8 +192,7 @@ const currentMultiFrameIndex = ref(-1);
 const imageRows = ref(240);
 const imageCols = ref(320);
 
-const { lastLog, connectionStatus, connectionAttempts, connect, disconnect } = useSseLogs('/sse/logs');
-const parsedLogs = ref([]);
+const {logs: parsedLogs, connectionStatus, connectionAttempts, connect, disconnect, clearLogs} = useSseLogs('/sse/logs');
 const reportRef = ref(null);
 
 const {
@@ -644,8 +642,6 @@ async function handleInfer() {
 }
 
 function logOut() { router.replace("/home"); }
-function zoomIn() { zoomLevel.value = Math.min(300, zoomLevel.value + 10); }
-function zoomOut() { zoomLevel.value = Math.max(20, zoomLevel.value - 10); }
 function handleCustomAction3() { notifications.showNotification('功能 “感兴趣图像区域计算” 尚未实现。', 2000); }
 
 watch(currentMultiFrameIndex, (newResultIndex) => {
@@ -654,48 +650,29 @@ watch(currentMultiFrameIndex, (newResultIndex) => {
       console.log(`[imgProcess.vue] Watcher: 请求 MultiFrameSystem 将预览同步到索引 ${newResultIndex}`);
       multiFrameSystemRef.value.syncPreviewFrame(newResultIndex);
     } else {
-      // 如果方法不存在，这可能表示组件尚未完全准备好或 defineExpose 中有遗漏。
       console.warn('[ImgProcess.vue] Watcher: multiFrameSystemRef.value.syncPreviewFrame 不是一个函数。无法同步预览帧。');
     }
   }
 });
 
-// 日志部分
-let logIdCounter = 0;
-const logRegex = /^(?<timestamp>\d{2}:\d{2}:\d{2}\.\d{3})\s+\[(?<thread>[^\]]+)\]\s+(?<level>\w+)\s+(?<logger>[^\s-]+)\s+-\s+(?<message>.*)$/;
-const parseLog = (logString) => {
-  const match = logString.match(logRegex);
-  logIdCounter++;
-  if (match && match.groups) {
-    return { ...match.groups, raw: logString, id: logIdCounter };
-  }
-  return {
-    timestamp: new Date().toLocaleTimeString('en-GB'),
-    thread: '?', level: 'INFO', logger: 'RAW',
-    message: logString, raw: logString, id: logIdCounter,
-  };
-};
-
-// 监听从 SSE 收到的新日志
-watch(lastLog, (newLogData) => {
-  if (newLogData && newLogData.data) {
-    const parsedLog = parseLog(newLogData.data);
-    parsedLogs.value.push(parsedLog);
-  }
-});
+// const toggleSseConnection = () => {
+//   if (connectionStatus.value === 'connected') {
+//     disconnect();
+//   } else {
+//     connect();
+//   }
+// };
 
 const toggleSseConnection = () => {
-  if (connectionStatus.value === 'connected') {
+  if (['connecting', 'connected'].includes(connectionStatus.value)) {
     disconnect();
   } else {
-    // 在重新连接或手动连接时，需要清空旧日志
-    parsedLogs.value = [];
     connect();
   }
 };
 
 const clearAllLogsAndReports = () => {
-  parsedLogs.value = []; // 清空日志数组
+  clearLogs();
   notifications.showNotification('日志已清空');
 };
 

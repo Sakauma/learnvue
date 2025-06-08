@@ -77,7 +77,7 @@ const filterLevels = ref({
   'TRACE': false,
 });
 
-const isConnected = computed(() => props.connectionStatus === 'connected');
+const isConnected = computed(() => ['connecting', 'connected'].includes(props.connectionStatus));
 
 const lastLogTime = computed(() => {
   if (props.logs && props.logs.length > 0) {

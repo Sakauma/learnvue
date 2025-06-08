@@ -1,4 +1,4 @@
-/*homePage.vue*/
+/*HomePage.vue*/
 <template>
   <div id="home-page">
     <p id="home-logo">欢迎来到 XJYTXFX 软件</p>

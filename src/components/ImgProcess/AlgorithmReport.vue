@@ -1,4 +1,4 @@
-/*algorithmReport.vue*/
+/*AlgorithmReport.vue*/
 <template>
   <div class="report-container">
     <div class="head">

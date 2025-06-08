@@ -1,4 +1,4 @@
-/*mainImageViewer.vue*/
+/*MainImageViewer.vue*/
 <template>
   <div class="image-container" ref="imageContainerRef">
     <SingleFrameSystem
@@ -39,7 +39,7 @@ import {computed, ref, watch} from 'vue';
 import { ElImage } from 'element-plus';
 import { Cropper } from 'vue-advanced-cropper';
 import 'vue-advanced-cropper/dist/style.css';
-import SingleFrameSystem from './singleFrameSystem.vue';
+import SingleFrameSystem from './SingleFrameSystem.vue';
 
 const props = defineProps({
   imageUrl: String,

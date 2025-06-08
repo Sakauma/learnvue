@@ -1,4 +1,4 @@
-/*appNotification.vue*/
+/*AppNotification.vue*/
 <template>
   <transition name="error-fade">
     <div v-if="notificationState.show" class="error-popup">

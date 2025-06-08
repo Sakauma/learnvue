@@ -1,4 +1,4 @@
-/*imageZoomSlider.vue*/
+/*ImageZoomSlider.vue*/
 <template>
   <div class="slider-input-container">
     <el-slider

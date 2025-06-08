@@ -1,4 +1,4 @@
-/*singleFrameSystem.vue*/
+/*SingleFrameSystem.vue*/
 <template>
   <div class="display-controls-bar">
     <div class="control-buttons"> <input type="file" ref="fileInputRef" style="display: none" @change="onFileSelected" accept="image/*,.dat,.tif,.tiff,.bmp,.gif,.jpeg,.jpg,.png"> <el-button class="bar-btn" :icon="Upload" title="上传图像" @click="triggerFileUpload"></el-button>

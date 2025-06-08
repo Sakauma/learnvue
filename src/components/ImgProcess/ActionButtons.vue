@@ -1,8 +1,8 @@
-/*actionButtons.vue*/
+/*ActionButtons.vue*/
 <template>
   <div class="action-buttons-container">
     <span style="color: white; margin: 0 10px;">--></span>
-    <el-button class="功能-button" @click="$emit('custom-action-3')">感兴趣图像区域计算</el-button>
+    <el-button class="feature-button" @click="$emit('custom-action-3')">感兴趣图像区域计算</el-button>
   </div>
 </template>
 
@@ -21,7 +21,7 @@ defineEmits(['infer', 'custom-action-3']);
   display: flex;
   align-items: center;
 }
-.识别-button, .功能-button {
+.feature-button {
   background-color:rgb(40, 108, 153);
   color: white;
   border: none;
@@ -31,10 +31,10 @@ defineEmits(['infer', 'custom-action-3']);
   cursor: pointer;
   transition: background-color 0.3s;
 }
-.识别-button:hover, .功能-button:hover {
+.feature-button:hover {
   background-color: rgb(53, 53, 53);
 }
-.识别-button:disabled, .功能-button:disabled {
+.feature-button:disabled {
   background-color: #a0cfff;
   cursor: not-allowed;
 }

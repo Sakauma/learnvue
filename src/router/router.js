@@ -1,7 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import AppIndex from '../components/utils/appIndex.vue'
-import ImgProcess from '../components/imgProcess.vue'
-import HomePage from '../components/homePage.vue'
+import AppIndex from '../components/utils/AppIndex.vue'
+import ImgProcess from '../components/ImgProcess.vue'
+import HomePage from '../components/HomePage.vue'
 
 const router = createRouter({
     history: createWebHistory(),

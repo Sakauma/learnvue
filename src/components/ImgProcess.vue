@@ -1,4 +1,4 @@
-/*imgProcess.vue*/
+/*ImgProcess.vue*/
 <template>
   <div id="back-block">
     <div id="log-out-bgd">
@@ -23,7 +23,7 @@
             v-model:specificAlgorithm="selectedSpecificAlgorithm"
         />
         <el-button
-            class="识别-button"
+            class="inference-button"
             @click="handleInfer"
             :disabled="isInferenceLoading || !canInferInCurrentMode">
           {{ isMultiFrameMode ? '识别多帧' : '识别单帧' }}
@@ -116,7 +116,7 @@
             :text-results="currentDisplayTextResults"
         />
 
-        <backendLogs
+        <BackendLogs
             :logs="parsedLogs"
             :connectionStatus="connectionStatus"
             :connectionAttempts="connectionAttempts"
@@ -126,13 +126,13 @@
         />
       </el-col>
       <el-col :span="12" class="chart-col">
-        <ChartGird ref="chartGridRef" />
+        <ChartGrid ref="chartGridRef" />
         <ResultData
             :idx="currentMultiFrameIndex"
             :datamode="isResultsModeActive"
             :datavalue="allFeaturesData"
         />
-        <algorithmReport
+        <AlgorithmReport
             ref="reportRef"
             :logs="parsedLogs"
         />
@@ -158,17 +158,17 @@ import { useMultiFrameResult } from '../composables/useMultiFrameResult.js';
 import { useSseLogs } from '../composables/useSseLogs.js';
 
 // Components
-import AlgorithmSelector from './ImgProcess/algorithmSelector.vue';
-import ActionButtons from './ImgProcess/actionButtons.vue';
-import MainImageViewer from './ImgProcess/mainImageViewer.vue';
-import MultiFrameSystem from './ImgProcess/multiFrameSystem.vue';
-import ImageZoomSlider from './ImgProcess/imageZoomSlider.vue';
-import ResultsDisplay from './ImgProcess/resultsDisplay.vue';
-import ChartGird from './ImgProcess/chartGird.vue';
-import AppNotification from './ImgProcess/appNotification.vue';
-import ResultData from './ImgProcess/resultData.vue';
-import backendLogs from './ImgProcess/backendLogs.vue';
-import algorithmReport from './ImgProcess/algorithmReport.vue';
+import AlgorithmSelector from './ImgProcess/AlgorithmSelector.vue';
+import ActionButtons from './ImgProcess/ActionButtons.vue';
+import MainImageViewer from './ImgProcess/MainImageViewer.vue';
+import MultiFrameSystem from './ImgProcess/MultiFrameSystem.vue';
+import ImageZoomSlider from './ImgProcess/ImageZoomSlider.vue';
+import ResultsDisplay from './ImgProcess/ResultsDisplay.vue';
+import ChartGrid from './ImgProcess/ChartGrid.vue';
+import AppNotification from './ImgProcess/AppNotification.vue';
+import ResultData from './ImgProcess/ResultData.vue';
+import BackendLogs from './ImgProcess/BackendLogs.vue';
+import AlgorithmReport from './ImgProcess/AlgorithmReport.vue';
 
 
 const router = useRouter();
@@ -635,7 +635,7 @@ async function handleInfer() {
         };
         chartGridRef.value.updateAllChartsWithFeatureData(singleFeatureMap);
       } else {
-        console.warn("[imgProcess.vue] 单帧模式：ChartGrid ref 或 updateAllChartsWithFeatureData 方法未找到。");
+        console.warn("[ImgProcess.vue] 单帧模式：ChartGrid ref 或 updateAllChartsWithFeatureData 方法未找到。");
       }
     } else if (result.success && !result.newChartValues) {
       notifications.showNotification('单帧识别成功，但未返回图表数据。', 2000);
@@ -655,7 +655,7 @@ watch(currentMultiFrameIndex, (newResultIndex) => {
       multiFrameSystemRef.value.syncPreviewFrame(newResultIndex);
     } else {
       // 如果方法不存在，这可能表示组件尚未完全准备好或 defineExpose 中有遗漏。
-      console.warn('[imgProcess.vue] Watcher: multiFrameSystemRef.value.syncPreviewFrame 不是一个函数。无法同步预览帧。');
+      console.warn('[ImgProcess.vue] Watcher: multiFrameSystemRef.value.syncPreviewFrame 不是一个函数。无法同步预览帧。');
     }
   }
 });
@@ -750,7 +750,7 @@ onUnmounted(disconnect);
   text-align: left;
 }
 
-.识别-button, .功能-button {
+.inference-button{
   background-color:rgb(40, 108, 153);
   color: white;
   border: none;
@@ -760,10 +760,10 @@ onUnmounted(disconnect);
   cursor: pointer;
   transition: background-color 0.3s;
 }
-.识别-button:hover, .功能-button:hover {
+.inference-button:hover{
   background-color: rgb(53, 53, 53);
 }
-.识别-button:disabled, .功能-button:disabled {
+.inference-button:disabled{
   background-color: #a0cfff;
   cursor: not-allowed;
 }

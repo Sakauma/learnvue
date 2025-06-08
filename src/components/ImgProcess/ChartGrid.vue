@@ -1,4 +1,4 @@
-/*chartGird.vue*/
+/*ChartGrid.vue*/
 <template>
   <div class="chart-container">
     <div v-for="(featureKey, index) in displayedFeatureKeys" :key="featureKey" class="chart-box">

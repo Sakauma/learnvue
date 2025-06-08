@@ -1,4 +1,4 @@
-/*backendLogs.vue*/
+/*BackendLogs.vue*/
 <template>
   <div class="log-container">
     <div class="connection-status" :class="connectionStatusClass">

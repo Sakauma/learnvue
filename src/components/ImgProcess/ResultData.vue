@@ -1,15 +1,15 @@
-/*resultData.vue*/
+/*ResultData.vue*/
 <template>
   <div class="result-data-container">
     <div class="table-header-wrapper">
       <h4 class="table-title">
-        {{ datamode ? `特征数据 (帧: ${idx + 1})` : '特征数据' }}
+        {{ dataMode ? `特征数据 (帧: ${idx + 1})` : '特征数据' }}
       </h4>
     </div>
 
     <el-table
         :data="tableData"
-        :show-header="tableData.length > 0 && props.datamode" :empty-text="emptyText"
+        :show-header="tableData.length > 0 && props.dataMode" :empty-text="emptyText"
         style="width: 100%"
         class="data-element-table" >
       <el-table-column prop="name" label="特征名称" width="250" />
@@ -32,11 +32,11 @@ const props = defineProps({
     type: Number,
     default: 0,
   },
-  datavalue: {
+  dataValue: {
     type: Object,
     default: () => ({}),
   },
-  datamode: {
+  dataMode: {
     type: Boolean,
     default: false,
   },
@@ -57,14 +57,14 @@ const defaultFeatureKeys = [
 ];
 
 const tableData = computed(() => {
-  if (!props.datamode) {
+  if (!props.dataMode) {
     return defaultFeatureKeys.map(feature => ({
       name: feature.name,
       displayValue: 'N/A',
     }));
   }
 
-  const hasData = props.datavalue && Object.keys(props.datavalue).length > 0;
+  const hasData = props.dataValue && Object.keys(props.dataValue).length > 0;
   if (!hasData) {
     return defaultFeatureKeys.map(feature => ({
       name: feature.name,
@@ -73,7 +73,7 @@ const tableData = computed(() => {
   }
 
   return defaultFeatureKeys.map(feature => {
-    const featureRawValue = props.datavalue[feature.key];
+    const featureRawValue = props.dataValue[feature.key];
     let displayValue = 'N/A'; // 默认值
 
     if (featureRawValue !== undefined && featureRawValue !== null) {
@@ -96,7 +96,7 @@ const tableData = computed(() => {
 });
 
 const emptyText = computed(() => {
-  if (props.datamode && (!props.datavalue || Object.keys(props.datavalue).length === 0)) {
+  if (props.dataMode && (!props.dataValue || Object.keys(props.dataValue).length === 0)) {
     return '当前帧无有效特征数据';
   }
   return '无数据';

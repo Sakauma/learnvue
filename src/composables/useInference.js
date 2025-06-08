@@ -60,7 +60,7 @@ export function useInference(showNotificationCallback) {
                 console.warn('后端响应中未找到有效的 "result" 字段作为图表Y值数组。实际result:', response.data.result);
             }
             showNotificationCallback(response.data.message || '✅ 识别成功！'); // 使用后端消息或默认成功消息
-            // 返回整个 response.data，imgProcess.vue 可以从中提取所需信息
+            // 返回整个 response.data，ImgProcess.vue 可以从中提取所需信息
             return { success: true, data: response.data, newChartValues: newChartYValues };
         } catch (error) {
             console.error('识别请求失败:', error);
@@ -93,7 +93,7 @@ export function useInference(showNotificationCallback) {
             // 即 response.data = { success: true, resultPath: "...", resultFiles: {...}, message: "..." }
             if (response.data && response.data.success) {
                 showNotificationCallback(response.data.message || '✅ 文件夹识别任务已发送并处理成功！');
-                // 将整个 response.data 返回，imgProcess.vue 会从中提取 resultPath 和 resultFiles
+                // 将整个 response.data 返回，ImgProcess.vue 会从中提取 resultPath 和 resultFiles
                 return { success: true, data: response.data };
             } else {
                 const errorMessage = response.data?.message || response.data?.error || '后端处理失败但未提供明确错误信息。';

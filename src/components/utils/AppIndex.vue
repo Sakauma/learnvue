@@ -1,4 +1,4 @@
-/*appIndex.vue*/
+/*AppIndex.vue*/
 <template>
   <div id="index">
     <p>hello world!</p>

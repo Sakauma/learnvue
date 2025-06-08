@@ -1,4 +1,4 @@
-/*resultsDisplay.vue*/
+/*ResultsDisplay.vue*/
 <template>
   <div class="cropped-result-container">
     <div class="image-box">

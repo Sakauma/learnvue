@@ -6,7 +6,6 @@ const normalDistribution = (x, mean, std) => {
     return (1 / (std * Math.sqrt(2 * Math.PI))) * Math.exp(-((x - mean) ** 2) / (2 * std ** 2));
 };
 
-// 生成本地初始数据的函数
 const generateInitialLocalData = (chartIndex) => {
     const mean1Base = chartIndex * 0.5 + 1;
     const std1 = 0.5;

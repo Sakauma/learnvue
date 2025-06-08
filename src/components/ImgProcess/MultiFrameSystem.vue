@@ -1,4 +1,4 @@
-/*multiFrameSystem.vue*/
+/*MultiFrameSystem.vue*/
 <template>
   <div class="multi-frame-system-wrapper">
     <div class="controls-bar-area">

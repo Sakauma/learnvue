@@ -1,4 +1,4 @@
-/*algorithmSelector.vue*/
+/*AlgorithmSelector.vue*/
 <template>
   <div class="algorithm-selectors">
     <el-select :model-value="algorithmType" @update:modelValue="handleAlgorithmTypeChange" class="algorithm-select" placeholder="选择算法类型">

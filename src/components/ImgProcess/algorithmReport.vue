@@ -48,13 +48,13 @@ watch(() => props.logs.length, (newLength, oldLength) => {
       const message = log.message;
       let reportMessage = '';
 
-      if (message.includes("调用C++ DLL进行单帧处理，算法:")) {
+      if (message.includes("调用C++ processImageWrapper (单帧模式)")) {
         reportMessage = `[${log.timestamp}] 单帧处理算法启动`;
-      } else if (message.includes("单帧识别请求处理完成:")) {
+      } else if (message.includes("C++ (单帧) 处理成功")) {
         reportMessage = `[${log.timestamp}] 单帧处理算法结束`;
       } else if (message.includes("调用C++ processImageWrapper (多帧模式)")) {
         reportMessage = `[${log.timestamp}] 多帧处理算法启动`;
-      } else if (message.includes("C++ (多帧) 处理成功。")) {
+      } else if (message.includes("C++ (多帧) 处理成功")) {
         reportMessage = `[${log.timestamp}] 多帧处理算法结束`;
       }
 

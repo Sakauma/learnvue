@@ -95,7 +95,6 @@ export function useMultiFrameLoader(showNotificationCallback) {
 
     async function loadFrame(index) {
         if (index < 0 || index >= fileList.value.length) {
-            console.warn(`loadFrame: 无效的帧索引: ${index}. 总帧数: ${fileList.value.length}`);
             cleanupPreviousFrameUrl();
             currentFrameFileInternal.value = null;
             currentFrameMD5.value = '';
@@ -103,14 +102,11 @@ export function useMultiFrameLoader(showNotificationCallback) {
             return null;
         }
 
-        if (isLoadingFrame.value) { //
-            console.log(`loadFrame: 另一帧 (可能是 ${currentIndex.value}) 仍在加载中。对索引 ${index} 的请求暂时忽略或排队。`);
+        if (isLoadingFrame.value) {
             return currentFrameFileInternal.value;
         }
 
         isLoadingFrame.value = true;
-        console.log(`loadFrame: isLoadingFrame 设置为 true (开始加载索引 ${index})`);
-
         const fileToLoad = fileList.value[index];
         currentIndex.value = index;
         currentFrameFileInternal.value = fileToLoad;
@@ -156,11 +152,11 @@ export function useMultiFrameLoader(showNotificationCallback) {
             currentFrameImageUrl.value = newImageUrl;
             currentFrameMD5.value = newMD5;
 
-            if (newImageUrl) {
-                console.log(`帧 ${fileToLoad.name} (索引 ${index}) 加载并处理成功。`);
-            } else {
-                console.warn(`帧 ${fileToLoad.name} (索引 ${index}) 未能加载为可显示的图像格式。currentFrameImageUrl 已设为 null。`);
-            }
+            // if (newImageUrl) {
+            //     console.log(`帧 ${fileToLoad.name} (索引 ${index}) 加载并处理成功。`);
+            // } else {
+            //     console.warn(`帧 ${fileToLoad.name} (索引 ${index}) 未能加载为可显示的图像格式。currentFrameImageUrl 已设为 null。`);
+            // }
 
         } catch (error) {
             console.error(`加载或处理帧 ${fileToLoad.name} (索引 ${index}) 时出错:`, error);
@@ -211,7 +207,6 @@ export function useMultiFrameLoader(showNotificationCallback) {
             console.error("processSelectedFiles 中调用 loadFrame(0) 第一次尝试出错:", e);
             if (isLoadingFrame.value) {
                 isLoadingFrame.value = false;
-                console.warn("processSelectedFiles: 在 loadFrame(0) 错误后，强制重置 isLoadingFrame 为 false");
             }
         }
     }

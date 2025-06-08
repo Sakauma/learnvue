@@ -131,7 +131,6 @@ export function useImageHandler(showNotificationCallback) {
             }
 
         } catch (error) {
-            console.error("Error in handleFileSelected:", error); // <-- 日志9
             showNotificationCallback('❌ 处理文件时发生错误。');
             if (imageUrl.value && imageUrl.value.startsWith('blob:')) { URL.revokeObjectURL(imageUrl.value); }
             imageUrl.value = null; originalFile.value = null; fileMD5.value = ''; imageName.value = '';

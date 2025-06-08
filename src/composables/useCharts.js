@@ -31,7 +31,7 @@ export function useChart(chartRef, chartIndex) {
             chartInstance = echarts.init(chartRef.value);
             isInitialized.value = true;
         } catch (e) {
-            console.error(`initChart - Failed to initialize ECharts for index ${chartIndex}:`, e);
+            console.error(`initChart: Failed to initialize ECharts for index ${chartIndex}:`, e);
             return;
         }
 
@@ -150,8 +150,6 @@ export function useChart(chartRef, chartIndex) {
 
             // ECharts会重新计算范围。
             chartInstance.setOption(newOption);
-        } else {
-            console.warn(`updateChartWithSingleBackendSeries: Chart ${chartIndex} not ready or disposed. Data not updated.`);
         }
     };
 

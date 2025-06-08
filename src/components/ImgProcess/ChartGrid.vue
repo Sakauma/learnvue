@@ -37,10 +37,10 @@ onMounted(() => {
       chartUpdaters.value[index] = {
         updateFunc: updateChartData,
         getIsInitialized: () => isInitialized.value,
-        featureKey: key // 方便调试
+        featureKey: key
       };
     } else {
-      console.error(`onMounted: chartRefs.value[${index}] (for feature ${key}) is not yet available.`);
+      console.error(`chartRefs.value[${index}] (for feature ${key}) is not yet available.`);
     }
   });
 });
@@ -70,9 +70,9 @@ function updateAllChartsWithFeatureData(allFeaturesMap) {
         if (yValues && Array.isArray(yValues)) {
           if (yValues.length > 0) {
             const numPoints = yValues.length;
-            const xValues = Array.from({ length: numPoints }, (_, k) => k); // X轴: 0, 1, 2...
-            const seriesData = yValues.map((y, index) => [xValues[index], parseFloat(y) || 0]); // 确保y是数字
-            updaterObj.updateFunc(seriesData, chartTitle); // useCharts.js 中的 updateChart 会使用第二个参数作为标题
+            const xValues = Array.from({ length: numPoints }, (_, k) => k);
+            const seriesData = yValues.map((y, index) => [xValues[index], parseFloat(y) || 0]);
+            updaterObj.updateFunc(seriesData, chartTitle);
           } else {
             updaterObj.updateFunc([], chartTitle + " (无数据)");
           }

@@ -37,11 +37,9 @@ const props = defineProps({
 const reports = ref([]);
 
 watch(() => props.logs.length, (newLength, oldLength) => {
-  // 如果 oldLength 是 undefined，说明是第一次运行
   oldLength = oldLength || 0;
 
   if (newLength > oldLength) {
-    // 长度增加了，说明有新日志
     const newItems = props.logs.slice(oldLength);
 
     newItems.forEach(log => {

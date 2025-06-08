@@ -127,8 +127,8 @@
         <ChartGrid ref="chartGridRef" />
         <ResultData
             :idx="currentMultiFrameIndex"
-            :datamode="isResultsModeActive"
-            :datavalue="allFeaturesData"
+            :dataMode="isResultsModeActive"
+            :dataValue="allFeaturesData"
         />
         <AlgorithmReport
             ref="reportRef"
@@ -154,7 +154,7 @@ import { useImageHandler } from '../composables/useImageHandler.js';
 import { useInference } from '../composables/useInference.js';
 import { useMultiFrameResult } from '../composables/useMultiFrameResult.js';
 import { useSseLogs } from '../composables/useSseLogs.js';
-import {useZoom } from "../composables/useZoom.js";
+import { useZoom } from "../composables/useZoom.js";
 
 // component
 import AlgorithmSelector from './ImgProcess/AlgorithmSelector.vue';
@@ -391,10 +391,9 @@ async function handleGenerateCurves() {
 }
 
 async function fetchFeatureDataForCharts(currentResultPath) {
-  console.log("【前端DEBUG】fetchFeatureDataForCharts 被调用，currentResultPath:", currentResultPath);
   if (!currentResultPath || typeof currentResultPath !== 'string' || currentResultPath.trim() === '') {
-    notifications.showNotification('❌ [前端错误] resultPath 为空或无效，无法请求特征数据。');
-    console.error("【前端DEBUG】错误：resultPath 为空或无效:", currentResultPath);
+    notifications.showNotification('❌ 结果路径为空或无效，无法请求特征数据。');
+    console.error("错误：resultPath 为空或无效:", currentResultPath);
     return;
   }
   if (!currentResultPath) {
@@ -415,8 +414,6 @@ async function fetchFeatureDataForCharts(currentResultPath) {
       notifications.showNotification("图表特征数据加载成功！", 2000);
       if (chartGridRef.value && typeof chartGridRef.value.updateAllChartsWithFeatureData === 'function') {
         chartGridRef.value.updateAllChartsWithFeatureData(allFeaturesData.value);
-      } else {
-        console.warn("ChartGrid ref 或 updateAllChartsWithFeatureData 方法未找到。");
       }
     } else {
       allFeaturesData.value = null;
@@ -443,101 +440,6 @@ async function fetchFeatureDataForCharts(currentResultPath) {
   }
 }
 
-// async function handleInfer() {
-//   if (!selectedSpecificAlgorithm.value) {
-//     notifications.showNotification('请选择具体算法。', 2000);
-//     return;
-//   }
-//   if (imageRows.value <= 0 || imageCols.value <= 0) {
-//     notifications.showNotification('❌ 请设置有效的图像行数和列数才能进行识别。', 2000);
-//     return;
-//   }
-//
-//   if (chartGridRef.value && typeof chartGridRef.value.updateAllChartsWithBackendData === 'function') {
-//     chartGridRef.value.updateAllChartsWithBackendData([]);
-//   }
-//
-//   if (isMultiFrameMode.value) {
-//     if (!originalFolderPath.value.trim()) {
-//       notifications.showNotification('多帧模式下，请先在“识别路径”输入框中输入文件夹绝对路径并点击“确认目录”按钮。', 4000);
-//       return;
-//     }
-//     resultFolderPathFromApi.value = '';
-//     resultFilesFromApi.value = null;
-//     currentMultiFrameIndex.value = -1; // 重置索引，以防上次结果影响判断
-//
-//     const result = await inferenceHandler.performFolderPathInference(
-//         originalFolderPath.value,
-//         selectedSpecificAlgorithm.value
-//     );
-//
-//     console.log('后端 /infer_folder_path 完整响应 (result):', JSON.parse(JSON.stringify(result)));
-//     if (result && result.data) {
-//       console.log('后端 result.data 内容:', JSON.parse(JSON.stringify(result.data)));
-//     }
-//
-//     if (result && result.success && result.data) {
-//       resultFolderPathFromApi.value = result.data.resultPath || '';
-//
-//       if (result.data.resultFiles &&
-//           typeof result.data.resultFiles === 'object' &&
-//           Array.isArray(result.data.resultFiles.outputImageNames)) {
-//
-//         resultFilesFromApi.value = { // 直接使用后端返回的结构化数据
-//           outputImageNames: result.data.resultFiles.outputImageNames,
-//           interestImageNames: Array.isArray(result.data.resultFiles.interestImageNames) ? result.data.resultFiles.interestImageNames : [],
-//           originalNames: Array.isArray(result.data.resultFiles.originalNames) ? result.data.resultFiles.originalNames : []
-//         };
-//       } else {
-//         resultFilesFromApi.value = null; // 确保在数据无效时清空
-//         notifications.showNotification('⚠️ 后端响应的 result.data.resultFiles 结构不符合预期或缺少 outputImageNames 数组。', 3000);
-//       }
-//
-//       if (resultFilesFromApi.value && resultFilesFromApi.value.outputImageNames.length > 0) {
-//         currentMultiFrameIndex.value = 0;
-//       } else {
-//         currentMultiFrameIndex.value = -1;
-//         if(result.data.resultFiles) { // 如果 resultFiles 对象存在但 outputImageNames 为空或无效
-//           notifications.showNotification('识别完成，但未返回有效的结果文件列表。', 2500);
-//         }
-//       }
-//
-//       const message = result.data.message || `结果信息已接收。`;
-//       notifications.showNotification(message, 3500);
-//
-//
-//     } else {
-//       resultFolderPathFromApi.value = '';
-//       resultFilesFromApi.value = null;
-//       currentMultiFrameIndex.value = -1;
-//       const errorMessage = (result && result.data && result.data.message) ? result.data.message : (result && result.error ? result.error : "识别请求失败或后端未返回有效数据。");
-//       notifications.showNotification(`❌ ${errorMessage}`, 3000);
-//     }
-//   } else { // 单帧模式
-//     const fileToInfer = singleFrameImageHandler.originalFile.value;
-//     if (!fileToInfer) {
-//       notifications.showNotification('单帧模式下，请先上传图像。', 2000);
-//       return;
-//     }
-//     const md5ToInfer = singleFrameImageHandler.fileMD5.value;
-//
-//     const result = await inferenceHandler.performInference(
-//         fileToInfer,
-//         md5ToInfer,
-//         selectedSpecificAlgorithm.value,
-//         imageRows.value,
-//         imageCols.value,
-//         cropCoordinates.value
-//     );
-//
-//     if (result.success && result.newChartValues) {
-//       if (chartGridRef.value && typeof chartGridRef.value.updateAllChartsWithBackendData === 'function') {
-//         chartGridRef.value.updateAllChartsWithBackendData(result.newChartValues);
-//       }
-//     }
-//   }
-// }
-
 async function handleInfer() {
   if (!selectedSpecificAlgorithm.value) {
     notifications.showNotification('请选择具体算法。', 2000);
@@ -551,8 +453,6 @@ async function handleInfer() {
   allFeaturesData.value = null;
   if (chartGridRef.value && typeof chartGridRef.value.clearAllCharts === 'function') {
     chartGridRef.value.clearAllCharts();
-  } else {
-    console.warn("handleInfer: ChartGrid ref 或 clearAllCharts 方法未找到。");
   }
 
   if (isMultiFrameMode.value) {
@@ -632,8 +532,6 @@ async function handleInfer() {
           [defaultSingleFrameChartKey]: result.newChartValues
         };
         chartGridRef.value.updateAllChartsWithFeatureData(singleFeatureMap);
-      } else {
-        console.warn("[ImgProcess.vue] 单帧模式：ChartGrid ref 或 updateAllChartsWithFeatureData 方法未找到。");
       }
     } else if (result.success && !result.newChartValues) {
       notifications.showNotification('单帧识别成功，但未返回图表数据。', 2000);
@@ -647,21 +545,12 @@ function handleCustomAction3() { notifications.showNotification('功能 “感�
 watch(currentMultiFrameIndex, (newResultIndex) => {
   if (isMultiFrameMode.value && newResultIndex >= 0 && multiFrameSystemRef.value) {
     if (typeof multiFrameSystemRef.value.syncPreviewFrame === 'function') {
-      console.log(`[imgProcess.vue] Watcher: 请求 MultiFrameSystem 将预览同步到索引 ${newResultIndex}`);
       multiFrameSystemRef.value.syncPreviewFrame(newResultIndex);
     } else {
-      console.warn('[ImgProcess.vue] Watcher: multiFrameSystemRef.value.syncPreviewFrame 不是一个函数。无法同步预览帧。');
+      console.warn('[ImgProcess.vue] Watcher: 无法同步预览帧。');
     }
   }
 });
-
-// const toggleSseConnection = () => {
-//   if (connectionStatus.value === 'connected') {
-//     disconnect();
-//   } else {
-//     connect();
-//   }
-// };
 
 const toggleSseConnection = () => {
   if (['connecting', 'connected'].includes(connectionStatus.value)) {

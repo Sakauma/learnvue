@@ -174,7 +174,6 @@ const clearLogs = () => {
 .status-connected { background-color: #198754; }
 .status-error { background-color: #dc3545; }
 
-/* 控制区域 */
 .controls {
   margin-bottom: 1rem;
   display: flex;
@@ -213,7 +212,6 @@ button:hover { background-color: #4a4a4a; }
   flex-grow: 1;
 }
 
-/* 过滤级别标签样式 */
 .level-filters { display: flex; gap: 0.75rem; }
 .level-label { font-weight: bold; padding: 2px 4px; border-radius: 3px; }
 .log-error { color: #f48771; }
@@ -224,7 +222,7 @@ button:hover { background-color: #4a4a4a; }
 
 .log-display {
   flex: 1;
-  overflow: auto; /* 垂直和横向滚动 */
+  overflow: auto;
   background-color: #1e1e1e;
   border: 1px solid #1e1e1e;
   border-radius: 4px;
@@ -249,7 +247,7 @@ button:hover { background-color: #4a4a4a; }
 .log-entry > span { white-space: pre; }
 .timestamp { color: #6a9955; width: 90px; text-align: left; flex-shrink: 0; }
 .thread { color: #569cd6; min-width: 150px; }
-.level { font-weight: bold; width: 55px; text-align: center; flex-shrink: 0;}
+.level { font-weight: bold; width: 55px; text-align: left; flex-shrink: 0;}
 .logger { color: #9cdcfe; min-width: 200px; max-width: 350px; overflow: hidden; text-overflow: ellipsis; }
 .message { flex: 1; white-space: pre-wrap; word-break: break-all; text-align: left; }
 </style>

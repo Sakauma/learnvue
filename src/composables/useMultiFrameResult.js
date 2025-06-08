@@ -1,4 +1,3 @@
-// src/composables/useMultiFrameResult.js
 import { ref, watch, readonly } from 'vue';
 
 function getBaseName(filePath) {
@@ -50,16 +49,14 @@ export function useMultiFrameResult(
                 if (cleanInterestFileName) {
                     interestImageUrl.value = `/api/get_image?folder=${encodeURIComponent(pathForApiQuery)}&file=${encodeURIComponent(cleanInterestFileName)}`;
                 }
-            } else {
-                console.warn(`[useMultiFrameResult] 未能在 filesInfo.interestImageNames 中找到索引 ${currentIndex} 对应的文件。`);
             }
 
         } else {
-            if (!basePathForApi) console.warn("[useMultiFrameResult FINAL] 警告: 从API获取的结果路径 (resultPathFromApi) 为空");
-            if (!filesInfo) console.warn("[useMultiFrameResult FINAL] 警告: filesInfo (resultFiles) 为空");
+            if (!basePathForApi) console.warn("[useMultiFrameResult] 警告: 从API获取的结果路径 (resultPathFromApi) 为空");
+            if (!filesInfo) console.warn("[useMultiFrameResult] 警告: filesInfo (resultFiles) 为空");
             else if (!Array.isArray(filesInfo.outputImageNames)) console.warn("[useMultiFrameResult FINAL] 警告: filesInfo.outputImageNames 不是有效数组");
             if (filesInfo && Array.isArray(filesInfo.outputImageNames) && !(currentIndex >= 0 && currentIndex < filesInfo.outputImageNames.length)) {
-                console.warn(`[useMultiFrameResult FINAL] 警告: 当前索引 ${currentIndex} 超出 outputImageNames 数组范围 (长度 ${filesInfo.outputImageNames.length})`);
+                console.warn(`[useMultiFrameResult] 警告: 当前索引 ${currentIndex} 超出 outputImageNames 数组范围 (长度 ${filesInfo.outputImageNames.length})`);
             }
         }
     };

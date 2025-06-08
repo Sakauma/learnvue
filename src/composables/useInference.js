@@ -1,4 +1,3 @@
-// src/composables/useInference.js
 import { ref } from 'vue';
 import axios from 'axios';
 
@@ -118,8 +117,8 @@ export function useInference(showNotificationCallback) {
 
     return {
         isLoading,
-        resultImageUrl, // 单帧
-        textResults,    // 单帧
+        resultImageUrl,
+        textResults,
         performInference,
         performFolderPathInference,
     };

@@ -39,9 +39,7 @@ function triggerFileUpload() {
 
 function onFileSelected(event) {
   const file = event.target.files?.[0];
-  console.log('[SingleFrameSystem] Input "change" event fired. File from event.target.files:', file); // <-- 日志1
   if (file) {
-    console.log(`[ImageDisplayControls] Emitting "file-selected" event with file: ${file.name}, type: ${file.type}, size: ${file.size}`); // <-- 日志2
     emit('file-selected', file);
   }
   if (event.target) {

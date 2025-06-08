@@ -25,6 +25,7 @@
 
 <script setup>
 import { ref, watch } from 'vue';
+import { ElScrollbar } from 'element-plus';
 
 const props = defineProps({
   logs: {

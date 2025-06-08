@@ -15,6 +15,8 @@
 
 <script setup>
 import { ref } from 'vue';
+import { ElButton } from 'element-plus';
+import { ZoomIn, ZoomOut, Upload, Delete, Crop, Check } from '@element-plus/icons-vue';
 
 defineProps({
   isCropping: Boolean,

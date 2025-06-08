@@ -14,6 +14,7 @@
 
 <script setup>
 import { watch, computed } from 'vue';
+import { ElSelect, ElOption } from 'element-plus';
 
 const props = defineProps({
   algorithmType: String,

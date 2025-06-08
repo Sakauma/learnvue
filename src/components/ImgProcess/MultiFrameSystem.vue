@@ -49,6 +49,8 @@
 
 <script setup>
 import { computed, watch } from 'vue';
+import { ElImage, ElButton, ElSlider } from 'element-plus';
+import { Upload, Delete, ZoomIn, ZoomOut, ArrowLeftBold, ArrowRightBold } from '@element-plus/icons-vue';
 import { useMultiFrameLoader } from '../../composables/useMultiFrameLoader.js';
 import { useNotifications } from '../../composables/useNotifications.js'
 

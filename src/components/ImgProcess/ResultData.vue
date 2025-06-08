@@ -25,6 +25,7 @@
 <script setup>
 // TODO: 添加更多的检查和日志（不重要）
 import { computed } from 'vue';
+import { ElTable, ElTableColumn } from 'element-plus';
 
 const props = defineProps({
   idx: {

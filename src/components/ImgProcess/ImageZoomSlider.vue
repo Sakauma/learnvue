@@ -14,6 +14,8 @@
 </template>
 
 <script setup>
+import { ElSlider } from 'element-plus';
+
 defineProps({
   modelValue: { // for v-model
     type: Number,

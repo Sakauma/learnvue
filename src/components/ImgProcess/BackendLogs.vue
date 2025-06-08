@@ -149,7 +149,7 @@ const clearLogs = () => {
   font-family: "Microsoft YaHei", sans-serif;
   display: flex;
   flex-direction: column;
-  height: 90vh; /* 增加高度以容纳更多内容 */
+  height: 90vh;
   background-color: #1e1e1e;
   color: #d4d4d4;
   font-size: 14px;

@@ -158,8 +158,6 @@
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import axios from 'axios';
-import { ElRow, ElCol, ElButton, ElSelect, ElOption, ElInput, ElInputNumber } from 'element-plus';
-import { CloseBold } from '@element-plus/icons-vue';
 
 // composable
 import { useNotifications } from '../composables/useNotifications.js';

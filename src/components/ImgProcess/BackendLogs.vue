@@ -107,10 +107,10 @@ const emptyMessage = computed(() => {
 });
 
 const connectionStatusText = computed(() => {
-  switch (props.connectionStatus) { // 确保你使用的是 props.connectionStatus
+  switch (props.connectionStatus) {
     case 'disconnected': return '未连接';
     case 'connecting': return `连接中... (尝试第 ${props.connectionAttempts} 次)`;
-    case 'connected': return '已连接'; // <-- 添加 return 语句
+    case 'connected': return '已连接';
     case 'error': return '连接错误 - 3秒后尝试重连...';
     default: return '未知状态';
   }

@@ -23,7 +23,6 @@
 
 <script setup>
 import { ref, watch, onMounted } from 'vue';
-import { ElSelect, ElOption } from 'element-plus';
 import { useChart } from "../../composables/useCharts.js";
 
 const props = defineProps({

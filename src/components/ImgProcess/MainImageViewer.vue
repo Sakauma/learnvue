@@ -36,7 +36,6 @@
 
 <script setup>
 import {computed, ref, watch} from 'vue';
-import { ElImage } from 'element-plus';
 import { Cropper } from 'vue-advanced-cropper';
 import 'vue-advanced-cropper/dist/style.css';
 import SingleFrameSystem from './SingleFrameSystem.vue';

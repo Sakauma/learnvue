@@ -57,7 +57,6 @@
 </template>
 
 <script setup>
-import { ElImage } from 'element-plus';
 
 defineProps({
   croppedImageUrl: String,

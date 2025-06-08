@@ -7,8 +7,6 @@
 </template>
 
 <script setup>
-import { ElButton } from 'element-plus';
-
 defineProps({
   isLoading: Boolean,
   canInfer: Boolean,

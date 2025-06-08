@@ -62,10 +62,6 @@ watch(() => props.logs.length, (newLength, oldLength) => {
         reports.value.push(reportMessage);
       }
     });
-
-  } else if (newLength < oldLength) {
-    // 长度减少了，很可能是日志被清空了，我们也清空报告
-    reports.value = [];
   }
 });
 

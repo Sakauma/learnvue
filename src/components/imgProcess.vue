@@ -648,13 +648,6 @@ function zoomIn() { zoomLevel.value = Math.min(300, zoomLevel.value + 10); }
 function zoomOut() { zoomLevel.value = Math.max(20, zoomLevel.value - 10); }
 function handleCustomAction3() { notifications.showNotification('功能 “感兴趣图像区域计算” 尚未实现。', 2000); }
 
-// watch(currentMultiFrameIndex, (newResultIndex) => {
-//   if (isMultiFrameMode.value && newResultIndex >= 0 && multiFrameSystemRef.value) {
-//     if (typeof multiFrameSystemRef.value.previewLoader?.loadFrame === 'function' &&
-//         newResultIndex < (multiFrameSystemRef.value.previewLoader?.totalFrames?.value || 0)) {
-//     }
-//   }
-// });
 watch(currentMultiFrameIndex, (newResultIndex) => {
   if (isMultiFrameMode.value && newResultIndex >= 0 && multiFrameSystemRef.value) {
     if (typeof multiFrameSystemRef.value.syncPreviewFrame === 'function') {
@@ -691,18 +684,19 @@ watch(lastLog, (newLogData) => {
   }
 });
 
-// 控制连接
 const toggleSseConnection = () => {
   if (connectionStatus.value === 'connected') {
     disconnect();
   } else {
-    // 在重新连接或手动连接时，可能需要清空旧日志
+    // 在重新连接或手动连接时，需要清空旧日志
     parsedLogs.value = [];
-    if (reportRef.value) {
-      reportRef.value.clearReports();
-    }
     connect();
   }
+};
+
+const clearAllLogsAndReports = () => {
+  parsedLogs.value = []; // 清空日志数组
+  notifications.showNotification('日志已清空');
 };
 
 onMounted(connect);

@@ -68,7 +68,6 @@ export function useImageHandler(showNotificationCallback) {
                 originalFile.value = file;
                 imageName.value = file.name;
                 fileMD5.value = await generateMD5ForFile(file);
-            } else {
             }
 
         } catch (error) {

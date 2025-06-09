@@ -46,26 +46,17 @@ export function useInference(showNotificationCallback) {
             textResults.value = tempTextResults;
             let newChartYValues = null;
             if (response.data && response.data.result && Array.isArray(response.data.result)) {
-                const expectedLength = response.data.result_length;
-                if (typeof expectedLength === 'number' && response.data.result.length !== expectedLength) {
-                    console.warn(`后端返回的 result 数组长度 (${response.data.result.length}) 与 result_length 字段 (${expectedLength}) 不符。`);
-                }
                 if (response.data.result.length > 0) {
                     newChartYValues = response.data.result;
-                } else {
-                    console.warn('后端返回的 "result" 数组为空。');
                 }
-            } else {
-                console.warn('后端响应中未找到有效的 "result" 字段作为图表Y值数组。实际result:', response.data.result);
             }
-            showNotificationCallback(response.data.message || '✅ 识别成功！'); // 使用后端消息或默认成功消息
-            // 返回整个 response.data，ImgProcess.vue 可以从中提取所需信息
+            showNotificationCallback(response.data.message || '✅ 识别成功！');
             return { success: true, data: response.data, newChartValues: newChartYValues };
         } catch (error) {
             console.error('识别请求失败:', error);
             let errorMessage = '❌ 识别失败，请检查网络或联系管理员。';
-            if (error.response && error.response.data && (error.response.data.error || error.response.data.message) ) {
-                errorMessage = `❌ 识别失败: ${error.response.data.error || error.response.data.message}`;
+            if (error.response?.data?.error) {
+                errorMessage = `❌ 识别失败: ${error.response.data.error}`;
             } else if (error.message) {
                 errorMessage = `❌ 识别失败: ${error.message}`;
             }
@@ -88,23 +79,19 @@ export function useInference(showNotificationCallback) {
                 folderPath: folderPath,
                 algorithm: algorithm,
             });
-            // 假设后端成功时直接返回 MultiFrameResultResponse 的内容作为 response.data
-            // 即 response.data = { success: true, resultPath: "...", resultFiles: {...}, message: "..." }
             if (response.data && response.data.success) {
                 showNotificationCallback(response.data.message || '✅ 文件夹识别任务已发送并处理成功！');
-                // 将整个 response.data 返回，ImgProcess.vue 会从中提取 resultPath 和 resultFiles
                 return { success: true, data: response.data };
             } else {
                 const errorMessage = response.data?.message || response.data?.error || '后端处理失败但未提供明确错误信息。';
                 showNotificationCallback(`❌ 文件夹识别失败: ${errorMessage}`);
-                console.error('文件夹识别响应格式错误或处理失败:', response.data);
                 return { success: false, error: errorMessage };
             }
         } catch (error) {
             console.error('文件夹识别请求失败:', error);
             let errorMessage = '❌ 文件夹识别请求失败，请检查网络或联系管理员。';
-            if (error.response && error.response.data && (error.response.data.error || error.response.data.message)) {
-                errorMessage = `❌ 识别失败: ${error.response.data.error || error.response.data.message}`;
+            if (error.response?.data?.error) {
+                errorMessage = `❌ 识别失败: ${error.response.data.error}`;
             } else if (error.message) {
                 errorMessage = `❌ 识别失败: ${error.message}`;
             }

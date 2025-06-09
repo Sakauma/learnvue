@@ -5,7 +5,7 @@
         v-for="(config, index) in chartConfigs"
         :key="index"
         :options="featureOptions"
-        :all-data="allFeaturesData"
+        :all-data="props.featureData"
         :initial-selected-key="config.key"
         ref="chartRefs"
     />
@@ -14,9 +14,16 @@
 
 <script setup>
 import { ref } from 'vue';
-import SelectableChart from './SelectableChart.vue'; // 引入新组件
+import SelectableChart from './SelectableChart.vue';
 
-const allFeaturesData = ref({});
+const props = defineProps({
+  featureData: {
+    type: Object,
+    default: () => ({})
+  }
+});
+
+// const allFeaturesData = ref({});
 const chartRefs = ref([]);
 
 const featureOptions = [
@@ -36,18 +43,18 @@ const featureOptions = [
 
 const chartConfigs = ref(featureOptions.slice(0, 4));
 
-function updateAllChartsWithFeatureData(newFeaturesMap) {
-  allFeaturesData.value = newFeaturesMap || {};
-}
+// function updateAllChartsWithFeatureData(newFeaturesMap) {
+//   allFeaturesData.value = newFeaturesMap || {};
+// }
 
-function clearAllCharts() {
-  allFeaturesData.value = {};
-}
-
-defineExpose({
-  updateAllChartsWithFeatureData,
-  clearAllCharts,
-});
+// function clearAllCharts() {
+//   //allFeaturesData.value = {};
+// }
+//
+// defineExpose({
+//   //updateAllChartsWithFeatureData,
+//   clearAllCharts,
+// });
 </script>
 
 <style scoped>

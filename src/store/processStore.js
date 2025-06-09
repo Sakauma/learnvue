@@ -17,12 +17,7 @@ export const useProcessStore = defineStore('process', {
         manualFolderPath: '',
         singleFrameFile: null,
         singleFrameFileMD5: '',
-
-        // TODO: 后面删掉
-        singleFrameResultImageUrl: null,
-        singleFrameTextResults: [],
-
-        cropCoordinates: null,
+        cropCoordinates: null, // 存储裁剪坐标
         originalFolderPath: '',
         resultFolderPathFromApi: '',
         resultFilesFromApi: null,
@@ -49,7 +44,7 @@ export const useProcessStore = defineStore('process', {
             if (this.selectedMode === newMode) return;
             this.selectedMode = newMode;
             notifications.showNotification(`模式已切换为: ${newMode === 'singleFrame' ? '单帧模式' : '多帧模式'}`);
-            this.resetAllState(); // 切换模式时重置所有状态
+            this.resetAllState();
         },
 
         setSingleFrameFile(file, md5) {
@@ -64,35 +59,29 @@ export const useProcessStore = defineStore('process', {
             }
         },
 
-        /**
-         * 重置单帧模式的数据（包括图表）
-         */
+        // [BUG修复] 新增 Action，用于保存裁剪坐标
+        setCropCoordinates(coords) {
+            this.cropCoordinates = coords;
+        },
+
         resetSingleFrameData() {
             this.singleFrameFile = null;
             this.singleFrameFileMD5 = '';
-            this.singleFrameResultImageUrl = null;
-            this.singleFrameTextResults = [];
             this.cropCoordinates = null;
-            this.allFeaturesData = null; // 关键：同时重置图表数据
+            this.allFeaturesData = null;
             notifications.showNotification('单帧图像及数据已清除。');
         },
 
-        /**
-         * 重置多帧模式的数据（包括图表）
-         */
         resetMultiFrameData() {
             this.manualFolderPath = '';
             this.originalFolderPath = '';
             this.resultFolderPathFromApi = '';
             this.resultFilesFromApi = null;
             this.currentMultiFrameIndex = -1;
-            this.allFeaturesData = null; // 关键：同时重置图表数据
+            this.allFeaturesData = null;
             notifications.showNotification('所有多帧预览和结果已清除。');
         },
 
-        /**
-         * 重置所有状态，用于模式切换
-         */
         resetAllState() {
             this.resetSingleFrameData();
             this.resetMultiFrameData();
@@ -100,10 +89,6 @@ export const useProcessStore = defineStore('process', {
         },
 
         // --- 核心业务流程 Actions ---
-        /**
-         * Action: 执行单帧识别
-         * 返回一个包含结果的对象
-         */
         async inferSingleFrame() {
             if (!this.canInferInCurrentMode) return { success: false };
             this.isLoading = true;
@@ -126,7 +111,7 @@ export const useProcessStore = defineStore('process', {
                 } else {
                     notifications.showNotification('单帧识别成功，但未返回图表数据。', 2000);
                 }
-                // 返回成功状态和包含图像与文本的结果数据
+                // [BUG修复] 返回清晰的结果对象，供 Orchestrator 使用
                 return {
                     success: true,
                     resultImage: result.data.processedImage ? `data:image/png;base64,${result.data.processedImage}` : null,
@@ -139,7 +124,7 @@ export const useProcessStore = defineStore('process', {
         async inferMultiFrame() {
             if (!this.canInferInCurrentMode) return;
             this.isLoading = true;
-            this.allFeaturesData = null; // 清理旧图表
+            this.allFeaturesData = null;
             this.resultFolderPathFromApi = '';
             this.resultFilesFromApi = null;
             this.currentMultiFrameIndex = -1;

@@ -1,4 +1,3 @@
-/*SelectableChart.vue*/
 <template>
   <div class="selectable-chart-box">
     <div class="chart-header">
@@ -49,14 +48,13 @@ const redrawChart = () => {
     const seriesData = featureData.map((y, index) => [xValues[index], parseFloat(y) || 0]);
     updateChartData(seriesData, `${chartTitle} 数据曲线`);
   } else {
+    // 当数据为空或null时，此部分代码会执行，传入空数组来清空图表
     updateChartData([], `${chartTitle} 数据曲线 (无数据)`);
   }
 };
 
-watch(() => props.allData, (newData) => {
-  if (newData) {
-    redrawChart();
-  }
+watch(() => props.allData, () => {
+  redrawChart();
 }, { deep: true });
 
 const handleSelectionChange = () => {
@@ -64,12 +62,12 @@ const handleSelectionChange = () => {
 };
 
 onMounted(() => {
+  // 使用 setTimeout 确保 ECharts 容器已渲染
   setTimeout(() => {
     redrawChart();
   }, 0);
 });
 
-// 暴露 clearChart 方法给父组件
 const clearChart = () => {
   const selectedOption = props.options.find(opt => opt.key === selectedKey.value);
   const chartTitle = selectedOption ? selectedOption.label : '数据';

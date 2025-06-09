@@ -3,79 +3,134 @@ import axios from 'axios';
 import { useInference } from '../composables/useInference.js';
 import { useNotifications } from '../composables/useNotifications.js';
 
-// 在 Store 文件顶部实例化一次，供所有 action 使用
 const notifications = useNotifications();
 const inferenceHandler = useInference(notifications.showNotification);
 
 export const useProcessStore = defineStore('process', {
     state: () => ({
-        // 全局及UI状态
         selectedMode: 'singleFrame',
         selectedAlgorithmType: '',
         selectedSpecificAlgorithm: '',
         imageRows: 240,
         imageCols: 320,
         selectedPrecision: 'float64',
-
-        // 输入状态
-        cropCoordinates: null,      // 单帧的裁剪坐标
-        originalFolderPath: '',     // 多帧的原始路径
-
-        // 结果状态
+        manualFolderPath: '',
+        singleFrameFile: null,
+        singleFrameFileMD5: '',
+        singleFrameResultImageUrl: null,
+        singleFrameTextResults: [],
+        cropCoordinates: null,
+        originalFolderPath: '',
         resultFolderPathFromApi: '',
         resultFilesFromApi: null,
         currentMultiFrameIndex: -1,
-        allFeaturesData: null,      // 多帧图表数据
-        singleFrameChartData: null, // 单帧图表数据
+        allFeaturesData: null,
+        isLoading: false,
     }),
 
     getters: {
         isMultiFrameMode: (state) => state.selectedMode === 'multiFrame',
         numberOfResultFrames: (state) => state.resultFilesFromApi?.outputImageNames?.length || 0,
+        canInferInCurrentMode: (state) => {
+            if (!state.selectedSpecificAlgorithm) return false;
+            if (state.selectedMode === 'multiFrame') {
+                return !!state.originalFolderPath.trim();
+            }
+            return !!state.singleFrameFile;
+        },
     },
 
     actions: {
-        // --- 状态设置 Actions ---
+        // --- 状态设置与重置 Actions ---
         setMode(newMode) {
             if (this.selectedMode === newMode) return;
             this.selectedMode = newMode;
+            notifications.showNotification(`模式已切换为: ${newMode === 'singleFrame' ? '单帧模式' : '多帧模式'}`);
+            this.resetAllState(); // 切换模式时重置所有状态
         },
-        setAlgorithmType(type) { this.selectedAlgorithmType = type; },
-        setSpecificAlgorithm(algorithm) { this.selectedSpecificAlgorithm = algorithm; },
-        setImageRows(rows) { this.imageRows = rows; },
-        setImageCols(cols) { this.imageCols = cols; },
-        setPrecision(precision) { this.selectedPrecision = precision; },
-        setCropCoordinates(coordinates) { this.cropCoordinates = coordinates; },
-        setOriginalFolderPath(path) { this.originalFolderPath = path; },
 
-        // --- 核心业务流程 Actions ---
+        setSingleFrameFile(file, md5) {
+            this.singleFrameFile = file;
+            this.singleFrameFileMD5 = md5;
+        },
+
+        setOriginalFolderPath(path) {
+            this.originalFolderPath = path.trim();
+            if(this.originalFolderPath) {
+                notifications.showNotification(`识别路径已确认为: ${this.originalFolderPath}。`);
+            }
+        },
 
         /**
-         * Action: 执行单帧识别
-         * @param {object} payload - 包含单帧文件所需的数据 { file, md5 }
+         * 新增：重置单帧模式的数据（包括图表）
          */
-        async inferSingleFrame(payload) {
-            this.allFeaturesData = null; // 清理旧图表
+        resetSingleFrameData() {
+            this.singleFrameFile = null;
+            this.singleFrameFileMD5 = '';
+            this.singleFrameResultImageUrl = null;
+            this.singleFrameTextResults = [];
+            this.cropCoordinates = null;
+            this.allFeaturesData = null; // 关键：同时重置图表数据
+            notifications.showNotification('单帧图像及数据已清除。');
+        },
+
+        /**
+         * 新增：重置多帧模式的数据（包括图表）
+         */
+        resetMultiFrameData() {
+            this.manualFolderPath = '';
+            this.originalFolderPath = '';
+            this.resultFolderPathFromApi = '';
+            this.resultFilesFromApi = null;
+            this.currentMultiFrameIndex = -1;
+            this.allFeaturesData = null; // 关键：同时重置图表数据
+            notifications.showNotification('所有多帧预览和结果已清除。');
+        },
+
+        /**
+         * 重置所有状态，用于模式切换
+         */
+        resetAllState() {
+            this.resetSingleFrameData();
+            this.resetMultiFrameData();
+            this.isLoading = false;
+        },
+
+        // --- 核心业务流程 Actions ---
+        async inferSingleFrame() {
+            if (!this.canInferInCurrentMode) return;
+            this.isLoading = true;
+            this.allFeaturesData = null; // 清理旧图表数据
+
             const result = await inferenceHandler.performInference(
-                payload.file,
-                payload.md5,
+                this.singleFrameFile,
+                this.singleFrameFileMD5,
                 this.selectedSpecificAlgorithm,
                 this.imageRows,
                 this.imageCols,
                 this.cropCoordinates
             );
-            if (result.success && result.newChartValues?.length > 0) {
-                // 更新单帧图表状态，让组件监听并更新UI
-                this.singleFrameChartData = result.newChartValues;
-            } else if (result.success) {
-                notifications.showNotification('单帧识别成功，但未返回图表数据。', 2000);
+
+            if (result.success) {
+                this.singleFrameResultImageUrl = result.data.processedImage ? `data:image/png;base64,${result.data.processedImage}` : null;
+                const tempTextResults = [];
+                if (result.data.algorithm) tempTextResults.push({ label: '算法名称', value: result.data.algorithm });
+                if (result.data.timestamp) tempTextResults.push({ label: '时间戳', value: result.data.timestamp });
+                if (result.data.message) tempTextResults.push({ label: '消息', value: result.data.message });
+                this.singleFrameTextResults = tempTextResults;
+
+                if (result.newChartValues?.length > 0) {
+                    this.allFeaturesData = { "variance": result.newChartValues }; // 将单帧结果放入通用图表数据结构
+                } else {
+                    notifications.showNotification('单帧识别成功，但未返回图表数据。', 2000);
+                }
             }
+            this.isLoading = false;
         },
 
-        /**
-         * Action: 执行多帧识别
-         */
         async inferMultiFrame() {
+            if (!this.canInferInCurrentMode) return;
+            this.isLoading = true;
             this.allFeaturesData = null; // 清理旧图表
             this.resultFolderPathFromApi = '';
             this.resultFilesFromApi = null;
@@ -88,11 +143,7 @@ export const useProcessStore = defineStore('process', {
 
             if (result?.success && result.data) {
                 this.resultFolderPathFromApi = result.data.resultPath || '';
-                if (result.data.resultFiles?.outputImageNames) {
-                    this.resultFilesFromApi = result.data.resultFiles;
-                } else {
-                    notifications.showNotification('⚠️ 后端响应的 result.data.resultFiles 结构不符合预期。', 3000);
-                }
+                this.resultFilesFromApi = result.data.resultFiles || null;
                 if (this.numberOfResultFrames > 0) {
                     this.currentMultiFrameIndex = 0;
                     if (this.resultFolderPathFromApi) {
@@ -103,16 +154,10 @@ export const useProcessStore = defineStore('process', {
                 } else {
                     notifications.showNotification('识别完成，但未返回有效的结果文件列表。', 2500);
                 }
-                notifications.showNotification(result.data.message || `结果信息已接收。`, 3500);
-            } else {
-                const errorMessage = result?.data?.message || result?.error || "识别请求失败或后端未返回有效数据。";
-                notifications.showNotification(`❌ ${errorMessage}`, 3000);
             }
+            this.isLoading = false;
         },
 
-        /**
-         * 内部 Action: 获取多帧结果的特征数据
-         */
         async _fetchFeatureDataForCharts() {
             if (!this.resultFolderPathFromApi) return;
             try {

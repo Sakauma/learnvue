@@ -154,6 +154,7 @@ const clearLogs = () => {
   font-size: 14px;
   overflow: hidden;
   border-radius: 4px;
+  flex: 1;
 }
 
 .connection-status {

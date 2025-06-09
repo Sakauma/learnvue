@@ -1,9 +1,10 @@
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useProcessStore } from '../store/processStore.js';
 import { storeToRefs } from 'pinia';
 
 // 导入所有需要的其他 Composables
+import { useMultiFrameResult } from './useMultiFrameResult.js';
 import { useNotifications } from './useNotifications.js';
 import { useImageHandler } from './useImageHandler.js';
 import { useSseLogs } from './useSseLogs.js';
@@ -37,8 +38,13 @@ export function useProcessOrchestrator(mainViewerRef, multiFrameSystemRef, dataC
     const { zoomLevel, zoomIn, zoomOut } = useZoom();
     const singleFrameImageHandler = useImageHandler(notifications.showNotification);
     const { logs: parsedLogs, connectionStatus, connectionAttempts, connect, disconnect, clearLogs } = useSseLogs('/sse/logs');
+    const { interestImageUrl: multiFrameRoiImage, outputImageUrl: multiFrameResultImage } = useMultiFrameResult(
+        resultFolderPathFromApi,
+        resultFilesFromApi,
+        currentMultiFrameIndex
+    );
 
-    // [BUG修复] additionalImages 现在是所有结果卡片的唯一来源
+    // additionalImages 现在是所有结果卡片的唯一来源
     const additionalImages = ref([]);
 
     const isCroppingActive = ref(false);
@@ -64,7 +70,7 @@ export function useProcessOrchestrator(mainViewerRef, multiFrameSystemRef, dataC
             await store.inferMultiFrame();
             // 注意：多帧模式的结果展示不通过 additionalImages，而是由 MultiFrameSystem 内部处理
         } else {
-            // [BUG修复] 等待 store action 返回结果，并直接更新 additionalImages
+            // 等待 store action 返回结果，并直接更新 additionalImages
             const result = await store.inferSingleFrame();
             if (result.success && result.resultImage) {
                 additionalImages.value.push({
@@ -157,6 +163,7 @@ export function useProcessOrchestrator(mainViewerRef, multiFrameSystemRef, dataC
     };
 
     const handleCustomAction3 = () => {
+        // TODO: “感兴趣图像区域计算”功能尚未实现，等待后续实现
         notifications.showNotification('功能 “感兴趣图像区域计算” 尚未实现。', 2000);
     };
 
@@ -175,6 +182,15 @@ export function useProcessOrchestrator(mainViewerRef, multiFrameSystemRef, dataC
     // --- 5. 生命周期钩子 ---
     onMounted(connect);
     onUnmounted(disconnect);
+    /**
+     * @description 侦听多帧模式下 "结果帧" 索引的变化
+     * 当用户在结果导航条上切换时，同步更新上方预览区的 "原始帧"
+     */
+    watch(currentMultiFrameIndex, (newIndex) => {
+        if (isMultiFrameMode.value && multiFrameSystemRef.value && newIndex >= 0) {
+            multiFrameSystemRef.value.syncPreviewFrame(newIndex);
+        }
+    });
 
     // --- 6. 返回所有需要暴露给组件的属性和方法 ---
     return {
@@ -184,9 +200,11 @@ export function useProcessOrchestrator(mainViewerRef, multiFrameSystemRef, dataC
         currentMultiFrameIndex, allFeaturesData, isLoading, canInferInCurrentMode,
         zoomLevel, singleFrameImageHandler, parsedLogs, connectionStatus, connectionAttempts,
         notifications,
-        additionalImages, // 暴露给视图
+        additionalImages,
         isCroppingActive,
         numberOfResultFrames,
+        multiFrameResultImage,
+        multiFrameRoiImage,
 
         // 方法
         handleModeChange, handleInfer, receiveFileFromMainViewer, handleDeleteSingleFrameImage,

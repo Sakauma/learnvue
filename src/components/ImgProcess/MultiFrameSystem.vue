@@ -179,12 +179,7 @@ function loadFolderForPreview(htmlFileList, precision) {
 }
 
 function handleDeleteAllPreviewFrames() {
-  let didClearPreview = false;
-  if (previewLoader.totalFrames.value > 0) {
-    previewLoader.clearFrames();
-    notifications.showNotification('所有预览帧已清除。');
-    didClearPreview = true;
-  }
+  const didClearPreview = previewLoader.totalFrames.value > 0;
   emit('delete-all-frames', { previewCleared: didClearPreview });
 }
 

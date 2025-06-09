@@ -112,12 +112,43 @@
 
         <ImageZoomSlider class="layout-item zoom-slider-layout" v-model="zoomLevel" />
 
-        <div class="results-display-layout">
-          <div class="results-header">
-            <span class="header-title">结果展示区域</span>
-            <span class="header-subtitle">包含感兴趣区域、识别结果等</span>
-          </div>
-          <div class="results-content-wrapper">
+<!--        <div class="results-display-layout">-->
+<!--          <div class="results-header">-->
+<!--            <span class="header-title">结果展示区域</span>-->
+<!--            <span class="header-subtitle">包含感兴趣区域、识别结果等</span>-->
+<!--          </div>-->
+<!--          <div class="results-content-wrapper">-->
+<!--            <ImageViewerCard-->
+<!--                v-for="image in additionalImages"-->
+<!--                :key="image.id"-->
+<!--                class="additional-viewer-card"-->
+<!--                :image-url="image.url"-->
+<!--                :label="image.label"-->
+<!--            />-->
+<!--            <div v-if="additionalImages.length === 0" class="no-results-placeholder">-->
+<!--              <span>暂无结果图像</span>-->
+<!--            </div>-->
+<!--          </div>-->
+<!--        </div>-->
+
+        <div class="results-content-wrapper">
+          <template v-if="isMultiFrameMode">
+            <ImageViewerCard
+                class="additional-viewer-card"
+                :image-url="multiFrameRoiImage"
+                label="感兴趣区域图像"
+            />
+            <ImageViewerCard
+                class="additional-viewer-card"
+                :image-url="multiFrameResultImage"
+                label="结果图像"
+            />
+            <div v-if="!multiFrameResultImage && !multiFrameRoiImage" class="no-results-placeholder">
+              <span>导航以查看结果帧</span>
+            </div>
+          </template>
+
+          <template v-else>
             <ImageViewerCard
                 v-for="image in additionalImages"
                 :key="image.id"
@@ -128,7 +159,8 @@
             <div v-if="additionalImages.length === 0" class="no-results-placeholder">
               <span>暂无结果图像</span>
             </div>
-          </div>
+          </template>
+
         </div>
 
         <BackendLogs class="layout-item logs-layout"
@@ -189,9 +221,11 @@ const {
   currentMultiFrameIndex, allFeaturesData, isLoading, canInferInCurrentMode,
   zoomLevel, singleFrameImageHandler, parsedLogs, connectionStatus, connectionAttempts,
   notifications,
-  additionalImages, // [关键] 这个数组将包含所有要显示的卡片
+  additionalImages,
   isCroppingActive,
   numberOfResultFrames,
+  multiFrameRoiImage,
+  multiFrameResultImage,
 
   // 方法
   handleModeChange, handleInfer, receiveFileFromMainViewer, handleDeleteSingleFrameImage,
@@ -398,6 +432,7 @@ const {
 .logs-layout {
   flex-grow: 1;
   min-height: 200px;
+  display: flex;
 }
 .chart-grid-layout {
   height: 60vh;

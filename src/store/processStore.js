@@ -107,11 +107,11 @@ export const useProcessStore = defineStore('process', {
 
             if (result.success) {
                 if (result.newChartValues?.length > 0) {
+                    // TODO: 单帧模式下的图表数据结构不完整，等待后续算法开发完全后在此处修改
                     this.allFeaturesData = { "variance": result.newChartValues };
                 } else {
                     notifications.showNotification('单帧识别成功，但未返回图表数据。', 2000);
                 }
-                // [BUG修复] 返回清晰的结果对象，供 Orchestrator 使用
                 return {
                     success: true,
                     resultImage: result.data.processedImage ? `data:image/png;base64,${result.data.processedImage}` : null,

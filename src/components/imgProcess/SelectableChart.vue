@@ -1,3 +1,4 @@
+/*SelectableChart.vue*/
 <template>
   <div class="selectable-chart-box">
     <div class="chart-header">

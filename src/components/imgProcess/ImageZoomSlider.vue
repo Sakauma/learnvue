@@ -17,7 +17,7 @@
 import { ElSlider } from 'element-plus';
 
 defineProps({
-  modelValue: { // for v-model
+  modelValue: {
     type: Number,
     default: 100,
   },

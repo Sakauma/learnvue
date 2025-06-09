@@ -1,5 +1,4 @@
 // src/components/ImgProcess/ImageViewerCard.vue
-
 <template>
   <div class="image-card">
     <el-image

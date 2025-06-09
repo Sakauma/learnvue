@@ -22,8 +22,6 @@ const props = defineProps({
     default: () => ({})
   }
 });
-
-// const allFeaturesData = ref({});
 const chartRefs = ref([]);
 
 const featureOptions = [
@@ -42,29 +40,14 @@ const featureOptions = [
 ];
 
 const chartConfigs = ref(featureOptions.slice(0, 4));
-
-// function updateAllChartsWithFeatureData(newFeaturesMap) {
-//   allFeaturesData.value = newFeaturesMap || {};
-// }
-
-// function clearAllCharts() {
-//   //allFeaturesData.value = {};
-// }
-//
-// defineExpose({
-//   //updateAllChartsWithFeatureData,
-//   clearAllCharts,
-// });
 </script>
 
 <style scoped>
 .chart-container {
   width: 100%;
-  height: 95vh;
   display: grid;
   grid-template-rows: 1fr 1fr 1fr 1fr;
   gap: 10px;
-  padding: 0 0 20px;
   background-color: rgb(27, 40, 56);
 }
 </style>

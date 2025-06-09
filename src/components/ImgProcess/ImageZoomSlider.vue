@@ -28,7 +28,6 @@ defineEmits(['update:modelValue', 'input']);
 <style scoped>
 .slider-input-container {
   width: 100%;
-  margin-top: 5px;
   display: flex;
   align-items: center;
 }

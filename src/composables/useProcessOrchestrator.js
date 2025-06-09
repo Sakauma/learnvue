@@ -15,11 +15,12 @@ import { useZoom } from "./useZoom.js";
  * 这是一个核心的 Composable，它像一个“指挥官”，封装了页面的所有业务逻辑、
  * 事件处理和派生状态。目的是让主视图组件 (ImgProcess.vue) 保持纯净，
  * 只负责UI渲染和事件绑定，从而实现视图和逻辑的深度分离。
+ * @param {import('vue').Ref} mainViewerRef - 对 MainImageViewer 组件的引用
  * @param {import('vue').Ref} multiFrameSystemRef - 对 MultiFrameSystem 组件的模板引用 (ref)
  * @param {import('vue').Ref} dataColumnRef - 对 DataColumn 组件的模板引用 (ref)
  * @param {import('vue').Ref} folderInputRef - 对隐藏的文件夹输入框元素的模板引用 (ref)
  */
-export function useProcessOrchestrator(multiFrameSystemRef, dataColumnRef, folderInputRef) {
+export function useProcessOrchestrator(mainViewerRef, multiFrameSystemRef, dataColumnRef, folderInputRef) {
 
     // --- 1. 初始化核心模块 ---
     // 初始化工具
@@ -49,9 +50,14 @@ export function useProcessOrchestrator(multiFrameSystemRef, dataColumnRef, folde
     // 多帧结果图像URL的生成逻辑
     const { interestImageUrl: multiFrameInterestUrl, outputImageUrl: multiFrameOutputUrl } = useMultiFrameResult(resultFolderPathFromApi, resultFilesFromApi, currentMultiFrameIndex);
 
+    // 创建一个数组，用于存放所有动态生成的附加图像
+    const additionalImages = ref([]);
+
     // 单帧模式下裁剪后的预览图 URL
     const singleFrameCroppedPreviewUrl = ref(null);
 
+    // 管理单帧模式是否正在裁剪
+    const isCroppingActive = ref(false);
 
     // --- 3. 计算属性 (Computed Properties) ---
     // 这些计算属性像“派生状态”，它们根据基础状态的变化自动计算出新的值，用于UI展示
@@ -88,22 +94,29 @@ export function useProcessOrchestrator(multiFrameSystemRef, dataColumnRef, folde
      */
     const handleModeChange = (newMode) => {
         store.setMode(newMode);
-        // 切换模式时，清空单帧的裁剪预览图
-        singleFrameCroppedPreviewUrl.value = null;
+        isCroppingActive.value = false;
+        additionalImages.value = []; // 清空附加图像
     };
 
     /**
      * 处理主识别按钮的点击事件，分发到 store 中对应的 action
      */
-    const handleInfer = () => {
-        if (imageRows.value <= 0 || imageCols.value <= 0) {
-            notifications.showNotification('❌ 请设置有效的图像行数和列数。', 2000);
-            return;
-        }
+    const handleInfer = async () => { // 添加 async
+        if (imageRows.value <= 0 || imageCols.value <= 0) { /* ... */ return; }
+
         if (isMultiFrameMode.value) {
-            store.inferMultiFrame();
+            await store.inferMultiFrame();
         } else {
-            store.inferSingleFrame();
+            // 等待 store action 返回结果
+            const result = await store.inferSingleFrame();
+            if (result.success && result.resultImage) {
+                // 将返回的结果图像添加到 additionalImages 数组中
+                additionalImages.value.push({
+                    id: `result-${Date.now()}`,
+                    url: result.resultImage,
+                    label: '结果图像'
+                });
+            }
         }
     };
 
@@ -122,10 +135,30 @@ export function useProcessOrchestrator(multiFrameSystemRef, dataColumnRef, folde
      * 处理单帧图像的删除
      */
     const handleDeleteSingleFrameImage = () => {
-        singleFrameImageHandler.deleteImage(); // 清除本地预览
-        store.resetSingleFrameData(); // 重置 store 中的状态
-        // 删除图像时，清空裁剪预览图
-        singleFrameCroppedPreviewUrl.value = null;
+        singleFrameImageHandler.deleteImage();
+        store.resetSingleFrameData();
+        isCroppingActive.value = false;
+        additionalImages.value = []; // 清空附加图像
+    };
+
+    /**
+     * 切换裁剪状态
+     */
+    const toggleCropping = () => {
+        if (!singleFrameImageHandler.originalFile.value) {
+            notifications.showNotification('请先上传图像再进行裁剪。');
+            return;
+        }
+        isCroppingActive.value = !isCroppingActive.value;
+    };
+
+    /**
+     * 命令 MainImageViewer 执行并确认裁剪
+     */
+    const handleConfirmCrop = () => {
+        if (mainViewerRef.value) {
+            mainViewerRef.value.confirmCrop();
+        }
     };
 
     /**
@@ -133,9 +166,13 @@ export function useProcessOrchestrator(multiFrameSystemRef, dataColumnRef, folde
      * @param {{ croppedImageBase64: string, coordinates: object }} cropData - 裁剪数据
      */
     const onSingleFrameCropConfirmed = ({ croppedImageBase64, coordinates }) => {
-        // [Bug 1 修复] 不再修改原始图像的URL，而是更新裁剪预览图的URL
-        singleFrameCroppedPreviewUrl.value = croppedImageBase64;
-        store.cropCoordinates = coordinates; // 将裁剪坐标存入 store
+        additionalImages.value.push({
+            id: `crop-${Date.now()}`,
+            url: croppedImageBase64,
+            label: '感兴趣区域'
+        });
+        store.cropCoordinates = coordinates;
+        isCroppingActive.value = false;
         notifications.showNotification('✅ 感兴趣区域已截取');
     };
 
@@ -235,11 +272,13 @@ export function useProcessOrchestrator(multiFrameSystemRef, dataColumnRef, folde
         // 计算属性
         currentDisplayCroppedOrInterestImageUrl, currentDisplayResultImageUrl,
         currentDisplayTextResults, isResultsModeActive, numberOfResultFrames,
+        isCroppingActive,
 
         // 方法
         handleModeChange, handleInfer, receiveFileFromMainViewer, handleDeleteSingleFrameImage,
         onSingleFrameCropConfirmed, handleFolderSelectedViaDialog, confirmManualFolderPath,
         handleClearAllMultiFrames, triggerFolderDialogForPathHint, logOut, handleCustomAction3,
-        toggleSseConnection, clearAllLogsAndReports, zoomIn, zoomOut
+        toggleSseConnection, clearAllLogsAndReports, zoomIn, zoomOut,
+        toggleCropping, handleConfirmCrop
     };
 }

@@ -69,17 +69,14 @@ defineProps({
 <style scoped>
 .cropped-result-container {
   width: 100%;
-  margin-top: 5px;
   display: flex;
   justify-content: space-between;
-  margin-bottom: 10px;
   border: 1px solid rgb(56, 56, 56);
   background-color: rgb(27, 40, 56);
 }
 
 .image-box {
   width: 48%;
-  height: 30vh;
   position: relative;
   background-color: rgb(56, 56, 56);
   display: flex;

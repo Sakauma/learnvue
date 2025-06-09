@@ -78,7 +78,6 @@ defineExpose({
   font-family: "Microsoft YaHei", sans-serif;
   display: flex;
   flex-direction: column;
-  height: 40vh;
   background-color: rgb(56, 56, 56);
   border: 1px solid rgb(80, 80, 80);
   border-radius: 6px;
@@ -86,8 +85,6 @@ defineExpose({
   font-size: 14px;
   padding: 10px;
   box-sizing: border-box;
-  margin-top: 5px;
-  margin-bottom: 16px;
 }
 
 .head {

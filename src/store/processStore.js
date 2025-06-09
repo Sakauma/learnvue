@@ -17,8 +17,11 @@ export const useProcessStore = defineStore('process', {
         manualFolderPath: '',
         singleFrameFile: null,
         singleFrameFileMD5: '',
+
+        // TODO: 后面删掉
         singleFrameResultImageUrl: null,
         singleFrameTextResults: [],
+
         cropCoordinates: null,
         originalFolderPath: '',
         resultFolderPathFromApi: '',
@@ -62,7 +65,7 @@ export const useProcessStore = defineStore('process', {
         },
 
         /**
-         * 新增：重置单帧模式的数据（包括图表）
+         * 重置单帧模式的数据（包括图表）
          */
         resetSingleFrameData() {
             this.singleFrameFile = null;
@@ -75,7 +78,7 @@ export const useProcessStore = defineStore('process', {
         },
 
         /**
-         * 新增：重置多帧模式的数据（包括图表）
+         * 重置多帧模式的数据（包括图表）
          */
         resetMultiFrameData() {
             this.manualFolderPath = '';
@@ -97,10 +100,14 @@ export const useProcessStore = defineStore('process', {
         },
 
         // --- 核心业务流程 Actions ---
+        /**
+         * Action: 执行单帧识别
+         * 返回一个包含结果的对象
+         */
         async inferSingleFrame() {
-            if (!this.canInferInCurrentMode) return;
+            if (!this.canInferInCurrentMode) return { success: false };
             this.isLoading = true;
-            this.allFeaturesData = null; // 清理旧图表数据
+            this.allFeaturesData = null;
 
             const result = await inferenceHandler.performInference(
                 this.singleFrameFile,
@@ -111,21 +118,22 @@ export const useProcessStore = defineStore('process', {
                 this.cropCoordinates
             );
 
-            if (result.success) {
-                this.singleFrameResultImageUrl = result.data.processedImage ? `data:image/png;base64,${result.data.processedImage}` : null;
-                const tempTextResults = [];
-                if (result.data.algorithm) tempTextResults.push({ label: '算法名称', value: result.data.algorithm });
-                if (result.data.timestamp) tempTextResults.push({ label: '时间戳', value: result.data.timestamp });
-                if (result.data.message) tempTextResults.push({ label: '消息', value: result.data.message });
-                this.singleFrameTextResults = tempTextResults;
+            this.isLoading = false;
 
+            if (result.success) {
                 if (result.newChartValues?.length > 0) {
-                    this.allFeaturesData = { "variance": result.newChartValues }; // 将单帧结果放入通用图表数据结构
+                    this.allFeaturesData = { "variance": result.newChartValues };
                 } else {
                     notifications.showNotification('单帧识别成功，但未返回图表数据。', 2000);
                 }
+                // 返回成功状态和包含图像与文本的结果数据
+                return {
+                    success: true,
+                    resultImage: result.data.processedImage ? `data:image/png;base64,${result.data.processedImage}` : null,
+                    textResults: result.data.message || '识别成功'
+                };
             }
-            this.isLoading = false;
+            return { success: false };
         },
 
         async inferMultiFrame() {

@@ -45,6 +45,7 @@ const chartConfigs = ref(featureOptions.slice(0, 4));
 <style scoped>
 .chart-container {
   width: 100%;
+  height: 100%;
   display: grid;
   grid-template-rows: 1fr 1fr 1fr 1fr;
   gap: 10px;

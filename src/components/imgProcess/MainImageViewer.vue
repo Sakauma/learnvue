@@ -69,14 +69,12 @@ defineExpose({
 .image-container {
   position: relative;
   width: 100%;
-  height: 100%;
   display: flex;
   justify-content: center;
-  align-items: center;
-  border: 1px solid #ccc;
   background-color: rgb(56, 56, 56);
   overflow: hidden;
   transition: all 0.3s ease;
+  flex: 1;
 }
 .responsive-image {
   max-width: 100%;

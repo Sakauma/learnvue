@@ -196,8 +196,7 @@ defineExpose({
   display: flex;
   flex-direction: column;
   width: 100%;
-  border: 1px solid #ccc;
-  height: 60vh;
+  height: 100%;
 }
 
 .controls-bar-area {

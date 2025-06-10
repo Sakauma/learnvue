@@ -154,7 +154,8 @@ const clearLogs = () => {
   font-size: 14px;
   overflow: hidden;
   border-radius: 4px;
-  flex: 1;
+  height: 100%;
+  width: 100%;
 }
 
 .connection-status {
@@ -226,6 +227,8 @@ button:hover { background-color: #4a4a4a; }
   border: 1px solid #1e1e1e;
   border-radius: 4px;
   padding: 0.5rem;
+  min-height: 0;
+  max-height: 500px;
 }
 .empty-logs {
   color: #888;

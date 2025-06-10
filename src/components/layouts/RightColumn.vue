@@ -1,6 +1,6 @@
 /*RightColumn.vue*/
 <template>
-  <div class="data-column-layout">
+  <div class="right-column-layout">
     <div class="chart-grid-layout">
       <slot name="charts"></slot>
     </div>
@@ -19,7 +19,7 @@
 </script>
 
 <style scoped>
-.data-column-layout {
+.right-column-layout {
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -38,6 +38,7 @@
 
 .report-layout {
   flex-grow: 1;
+  min-height: 0;
   display: flex;
 }
 

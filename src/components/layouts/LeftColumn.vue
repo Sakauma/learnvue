@@ -1,6 +1,6 @@
 /*LeftColumn.vue*/
 <template>
-  <div class="image-column-layout">
+  <div class="left-column-layout">
     <div class="viewer-wrapper">
       <slot name="viewer"></slot>
     </div>
@@ -23,7 +23,7 @@
 </script>
 
 <style scoped>
-.image-column-layout {
+.left-column-layout {
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -36,7 +36,7 @@
   flex-shrink: 0;
   display: flex;
   position: relative;
-  border: 1px dashed #4a4a4a;
+  border: 2px solid #ccc;
 }
 
 .zoom-slider-layout {
@@ -59,7 +59,7 @@
 
 .logs-layout {
   flex-grow: 1;
-  min-height: 200px;
+  min-height: 0;
   display: flex;
 }
 </style>

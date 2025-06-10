@@ -85,6 +85,9 @@ defineExpose({
   font-size: 14px;
   padding: 10px;
   box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  max-height: 260px;
 }
 
 .head {
@@ -102,6 +105,7 @@ defineExpose({
   position: relative;
   background-color: #1e1e1e;
   border-radius: 4px;
+  max-height: 200px;
 }
 
 .el-scrollbar {
@@ -111,6 +115,7 @@ defineExpose({
 .report-display {
   padding: 0.5rem;
   box-sizing: border-box;
+  min-height: 0;
 }
 
 .empty-report {

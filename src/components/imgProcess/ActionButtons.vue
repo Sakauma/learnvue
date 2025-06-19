@@ -3,6 +3,7 @@
   <div class="action-buttons-container">
     <span style="color: white; margin: 0 10px;">--></span>
     <el-button class="feature-button" @click="$emit('custom-action-3')">感兴趣图像区域计算</el-button>
+    <el-button class="feature-button" @click="$emit('edit-config')">编辑算法配置文件</el-button>
   </div>
 </template>
 
@@ -13,7 +14,7 @@ defineProps({
   isLoading: Boolean,
   canInfer: Boolean,
 });
-defineEmits(['infer', 'custom-action-3']);
+defineEmits(['infer', 'custom-action-3', 'edit-config']);
 </script>
 
 <style scoped>

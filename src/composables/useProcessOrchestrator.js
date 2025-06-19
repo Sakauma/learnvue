@@ -1,5 +1,6 @@
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
+import axios from 'axios';
 import { useProcessStore } from '../store/processStore.js';
 import { storeToRefs } from 'pinia';
 
@@ -12,7 +13,7 @@ import { useZoom } from "./useZoom.js";
 
 /**
  * @description 图像处理页面的业务流程编排器 (Orchestrator)。
- * 这是一个核心的 Composable，它像一个“指挥官”，封装了页面的所有业务逻辑、
+ * 这是一个核心的 Composable，封装了页面的所有业务逻辑、
  * 事件处理和派生状态。目的是让主视图组件 (ImgProcess.vue) 保持纯净，
  * 只负责UI渲染和事件绑定，从而实现视图和逻辑的深度分离。
  * @param {import('vue').Ref} mainViewerRef - 对 MainImageViewer 组件的引用
@@ -53,7 +54,6 @@ export function useProcessOrchestrator(mainViewerRef, multiFrameSystemRef, dataC
     const numberOfResultFrames = computed(() => resultFilesFromApi.value?.outputImageNames?.length || 0);
 
     // --- 4. 事件处理函数 (Methods) ---
-
     const handleModeChange = (newMode) => {
         store.setMode(newMode);
         isCroppingActive.value = false;
@@ -111,7 +111,7 @@ export function useProcessOrchestrator(mainViewerRef, multiFrameSystemRef, dataC
         }
     };
 
-    // [BUG修复] 裁剪确认后，将图片添加到 additionalImages 数组
+    //裁剪确认后，将图片添加到 additionalImages 数组
     const onSingleFrameCropConfirmed = ({ croppedImageBase64, coordinates }) => {
         additionalImages.value.push({
             id: `crop-${Date.now()}`,
@@ -179,6 +179,51 @@ export function useProcessOrchestrator(mainViewerRef, multiFrameSystemRef, dataC
         notifications.showNotification('日志和报告已清空');
     };
 
+    // 配置文件相关
+    const isConfigEditorVisible = ref(false);
+    const currentConfig = ref({
+        region: { x: 0, y: 0, width: 320, height: 240 },
+        algorithm: { lr: 0.0001 },
+    });
+
+    /**
+     * 打开配置编辑器，并从后端获取最新配置
+     */
+    const openConfigEditor = async () => {
+        try {
+            const response = await axios.get('http://localhost:8081/api/config');
+            currentConfig.value = response.data;
+            console.log('从后端获取配置成功:', response.data);
+            notifications.showNotification('✅ 获取配置成功', 2000);
+
+            isConfigEditorVisible.value = true;
+        } catch (error) {
+            notifications.showNotification('❌ 获取配置失败', 2000);
+            console.error("获取配置失败:", error);
+            currentConfig.value = {
+                region: { x: 0, y: 0, width: 0, height: 0 },
+                algorithm: { lr: 0 },
+            };
+        }
+    };
+
+    /**
+     * 保存配置到后端
+     * @param {object} newConfig - 从编辑器传来的新配置数据
+     */
+    const handleSaveConfig = async (newConfig) => {
+        try {
+            await axios.post('http://localhost:8081/api/config', newConfig);
+            console.log('新配置保存到后端成功:', newConfig);
+            notifications.showNotification('✅ 配置保存成功', 2000);
+            currentConfig.value = newConfig;
+            isConfigEditorVisible.value = false;
+        } catch (error) {
+            notifications.showNotification('❌ 配置保存失败', 2000);
+            console.error("保存配置失败:", error);
+        }
+    };
+
     // --- 5. 生命周期钩子 ---
     onMounted(connect);
     onUnmounted(disconnect);
@@ -205,12 +250,15 @@ export function useProcessOrchestrator(mainViewerRef, multiFrameSystemRef, dataC
         numberOfResultFrames,
         multiFrameResultImage,
         multiFrameRoiImage,
-
+        isConfigEditorVisible,
+        currentConfig,
         // 方法
         handleModeChange, handleInfer, receiveFileFromMainViewer, handleDeleteSingleFrameImage,
         onSingleFrameCropConfirmed, handleFolderSelectedViaDialog, confirmManualFolderPath,
         handleClearAllMultiFrames, triggerFolderDialogForPathHint, logOut, handleCustomAction3,
         toggleSseConnection, clearAllLogsAndReports, zoomIn, zoomOut,
-        toggleCropping, handleConfirmCrop
+        toggleCropping, handleConfirmCrop,
+        openConfigEditor,
+        handleSaveConfig,
     };
 }

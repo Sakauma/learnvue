@@ -21,6 +21,10 @@
         @infer="handleInfer"
         @custom-action-3="handleCustomAction3"
         @confirm-manual-folder-path="confirmManualFolderPath"
+        v-model:isConfigEditorVisible="isConfigEditorVisible"
+        :current-config="currentConfig"
+        :on-open-config-editor="openConfigEditor"
+        :on-save-config="handleSaveConfig"
     />
     <input type="file" ref="folderInputRef" style="display: none" webkitdirectory directory multiple @change="handleFolderSelectedViaDialog" />
 
@@ -155,6 +159,10 @@ const {
   numberOfResultFrames,
   multiFrameRoiImage,
   multiFrameResultImage,
+  isConfigEditorVisible,
+  currentConfig,
+  openConfigEditor,
+  handleSaveConfig,
 
   // 方法
   handleModeChange, handleInfer, receiveFileFromMainViewer, handleDeleteSingleFrameImage,

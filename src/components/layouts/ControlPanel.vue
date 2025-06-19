@@ -27,9 +27,14 @@
         </el-button>
       </el-col>
       <el-col :span="12" class="right-menu-buttons">
-        <ActionButtons :is-loading="props.isLoading" @custom-action-3="emit('customAction3')" />
+        <ActionButtons
+            :is-loading="props.isLoading"
+            @custom-action-3="emit('customAction3')"
+            @edit-config="props.onOpenConfigEditor"
+        />
       </el-col>
     </el-row>
+
 
     <el-row :gutter="10" class="additional-inputs-row image-params-row" align="middle">
       <el-col :span="12">
@@ -85,13 +90,21 @@
         <el-button @click="emit('confirmManualFolderPath')" style="width: 100%;">确认目录</el-button>
       </el-col>
     </el-row>
+
+    <IniConfigEditor
+        :visible="props.isConfigEditorVisible"
+        @update:visible="emit('update:isConfigEditorVisible', $event)"
+        :initial-data="props.currentConfig"
+        @save="props.onSaveConfig"
+    />
   </div>
 </template>
 
 <script setup>
 import { ElRow, ElCol, ElButton, ElSelect, ElOption, ElInput, ElInputNumber } from 'element-plus';
-import AlgorithmSelector from '../ImgProcess/AlgorithmSelector.vue';
-import ActionButtons from '../ImgProcess/ActionButtons.vue';
+import AlgorithmSelector from '../imgProcess/AlgorithmSelector.vue';
+import ActionButtons from '../imgProcess/ActionButtons.vue';
+import IniConfigEditor from '../imgProcess/IniConfigEditor.vue';
 
 const props = defineProps({
   selectedMode: String,
@@ -104,6 +117,10 @@ const props = defineProps({
   imageCols: Number,
   selectedPrecision: String,
   manualFolderPath: String,
+  isConfigEditorVisible: Boolean,
+  currentConfig: Object,
+  onOpenConfigEditor: Function,
+  onSaveConfig: Function,
 });
 
 const emit = defineEmits([
@@ -116,7 +133,8 @@ const emit = defineEmits([
   'update:manualFolderPath',
   'infer',
   'customAction3',
-  'confirmManualFolderPath'
+  'confirmManualFolderPath',
+  'update:isConfigEditorVisible'
 ]);
 </script>
 

@@ -15,6 +15,7 @@
 <script setup>
 import { ref } from 'vue';
 import SelectableChart from './SelectableChart.vue';
+import { FEATURE_DEFINITIONS } from '../../config/featureConfig.js';
 
 const props = defineProps({
   featureData: {
@@ -24,22 +25,9 @@ const props = defineProps({
 });
 const chartRefs = ref([]);
 
-const featureOptions = [
-  { key: "variance",    label: "方差" },
-  { key: "mean_region", label: "均值" },
-  { key: "SCR",         label: "信杂比" },
-  { key: "contrast",    label: "对比度" },
-  { key: "entropy",     label: "信息熵" },
-  { key: "homogeneity", label: "同质性" },
-  { key: "smoothness",  label: "平滑性" },
-  { key: "skewness",    label: "偏度" },
-  { key: "kurtosis",    label: "峰度" },
-  { key: "xjy_area",    label: "目标XJY所占像素数" },
-  { key: "peak_cell_intensity", label: "峰单元强度" },
-  { key: "xjy_background_intensity", label: "XJY背景强度" },
-];
+const featureOptions = FEATURE_DEFINITIONS;
 
-const chartConfigs = ref(featureOptions.slice(0, 4));
+const chartConfigs = ref(FEATURE_DEFINITIONS.slice(0, 4));
 </script>
 
 <style scoped>

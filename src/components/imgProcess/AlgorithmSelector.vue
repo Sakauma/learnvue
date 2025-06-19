@@ -15,6 +15,7 @@
 <script setup>
 import { watch, computed } from 'vue';
 import { ElSelect, ElOption } from 'element-plus';
+import { TRADITIONAL_ALGORITHMS, DEEP_LEARNING_ALGORITHMS } from '../../config/algorithmConfig.js';
 
 const props = defineProps({
   algorithmType: String,
@@ -23,24 +24,11 @@ const props = defineProps({
 
 const emit = defineEmits(['update:algorithmType', 'update:specificAlgorithm']);
 
-// TODO: 后续算法名称在这里修改
-const traditionalAlgorithms = [
-  { label: '光流法', value: 'opticalFlow' },
-  { label: '多帧累积', value: 'multiFrameDifference' },
-  { label: '低秩稀疏', value: '低秩稀疏' }
-];
-const deepLearningAlgorithms = [
-  { label: 'VGG', value: 'VGG' },
-  { label: 'DNANet', value: 'DNANet' },
-  { label: 'UNet', value: 'UNet' },
-  { label: 'ALCNet', value: 'ALCNet' }
-];
-
 const currentSpecificAlgorithms = computed(() => {
   if (props.algorithmType === 'traditional') {
-    return traditionalAlgorithms;
+    return TRADITIONAL_ALGORITHMS;
   } else if (props.algorithmType === 'deepLearning') {
-    return deepLearningAlgorithms;
+    return DEEP_LEARNING_ALGORITHMS;
   }
   return [];
 });

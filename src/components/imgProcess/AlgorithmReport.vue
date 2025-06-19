@@ -2,7 +2,7 @@
 <template>
   <div class="report-container">
     <div class="head">
-      <span>算法运行报告</span>
+      <span>算法运行状态</span>
     </div>
     <div class="report-display-container">
       <el-scrollbar>

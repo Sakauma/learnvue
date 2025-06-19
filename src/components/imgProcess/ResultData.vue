@@ -26,6 +26,7 @@
 // TODO: 添加更多的检查和日志（不重要）
 import { computed } from 'vue';
 import { ElTable, ElTableColumn } from 'element-plus';
+import { FEATURE_DEFINITIONS } from '../../config/featureConfig.js';
 
 const props = defineProps({
   idx: {
@@ -42,38 +43,23 @@ const props = defineProps({
   },
 });
 
-const featureKeys = [
-  { name: "方差", key: "variance" },
-  { name: "均值", key: "mean_region" },
-  { name: "信杂比", key: "SCR" },
-  { name: "对比度", key: "contrast" },
-  { name: "信息熵", key: "entropy" },
-  { name: "同质性", key: "homogeneity" },
-  { name: "平滑性", key: "smoothness" },
-  { name: "偏度", key: "skewness" },
-  { name: "峰度", key: "kurtosis" },
-  { name: "目标XJY所占像素数", key: "xjy_area" },
-  { name: "峰单元强度", key: "peak_cell_intensity" },
-  { name: "XJY背景强度", key: "xjy_background_intensity" },
-];
-
 const tableData = computed(() => {
   if (!props.dataMode) {
-    return featureKeys.map(feature => ({
-      name: feature.name,
+    return FEATURE_DEFINITIONS.map(feature => ({
+      name: feature.label,
       displayValue: 'N/A',
     }));
   }
 
   const hasData = props.dataValue && Object.keys(props.dataValue).length > 0;
   if (!hasData) {
-    return featureKeys.map(feature => ({
-      name: feature.name,
+    return FEATURE_DEFINITIONS.map(feature => ({
+      name: feature.label,
       displayValue: 'N/A',
     }));
   }
 
-  return featureKeys.map(feature => {
+  return FEATURE_DEFINITIONS.map(feature => {
     const featureRawValue = props.dataValue[feature.key];
     let displayValue = 'N/A'; // 默认值
 
@@ -90,7 +76,7 @@ const tableData = computed(() => {
     }
 
     return {
-      name: feature.name,
+      name: feature.label,
       displayValue,
     };
   });

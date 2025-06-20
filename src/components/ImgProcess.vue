@@ -26,7 +26,7 @@
         :on-open-config-editor="openConfigEditor"
         :on-save-config="handleSaveConfig"
     />
-    <input type="file" ref="folderInputRef" style="display: none" webkitdirectory directory multiple @change="handleFolderSelectedViaDialog" />
+    <input type="file" ref="folderInputRef" style="display: none" webkitdirectory directory multiple @change="handleFolderSelectedViaDialog"/>
 
     <el-row :gutter="20" class="main-content-row">
       <el-col :span="12">

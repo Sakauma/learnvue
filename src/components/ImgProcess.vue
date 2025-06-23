@@ -146,7 +146,7 @@ const multiFrameSystemRef = ref(null);
 const dataColumnRef = ref(null);
 const folderInputRef = ref(null);
 
-// 2. 调用编排器，获取所有需要的数据和方法 (这部分完全不变!)
+// 2. 调用编排器，获取所有需要的数据和方法
 const {
   // 状态和 Refs
   selectedMode, isMultiFrameMode, selectedAlgorithmType, selectedSpecificAlgorithm,

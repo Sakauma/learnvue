@@ -14,7 +14,7 @@ import { useRouter } from 'vue-router';
 const router = useRouter();
 
 const goToInfer = () => {
-  router.push('/infer'); // 路由跳转到 /infer 页面
+  router.push('/infer');
 };
 </script>
 
@@ -45,13 +45,13 @@ const goToInfer = () => {
   font-size: 18px;
   border: none;
   border-radius: 5px;
-  background-color: rgb(40, 108, 153); /* 示例按钮背景颜色， Vue 绿 */
+  background-color: rgb(40, 108, 153);
   color: white;
   cursor: pointer;
   transition: background-color 0.3s ease;
 }
 
 #infer-button:hover {
-  background-color: rgb(53, 53, 53); /* 示例按钮 hover 时的背景颜色 */
+  background-color: rgb(53, 53, 53);
 }
 </style>

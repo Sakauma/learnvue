@@ -17,7 +17,7 @@ export const useProcessStore = defineStore('process', {
         manualFolderPath: '',
         singleFrameFile: null,
         singleFrameFileMD5: '',
-        cropCoordinates: null, // 存储裁剪坐标
+        cropCoordinates: null,
         originalFolderPath: '',
         resultFolderPathFromApi: '',
         resultFilesFromApi: null,
@@ -59,7 +59,6 @@ export const useProcessStore = defineStore('process', {
             }
         },
 
-        // [BUG修复] 新增 Action，用于保存裁剪坐标
         setCropCoordinates(coords) {
             this.cropCoordinates = coords;
         },

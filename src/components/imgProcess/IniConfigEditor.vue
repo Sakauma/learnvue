@@ -48,7 +48,7 @@
 
 <script setup>
 import { ref, watch } from 'vue';
-import { ElDialog, ElForm, ElFormItem, ElInputNumber, ElButton, ElDivider } from 'element-plus';
+import { ElDialog, ElForm, ElFormItem, ElInputNumber, ElButton } from 'element-plus';
 
 const props = defineProps({
   visible: Boolean,

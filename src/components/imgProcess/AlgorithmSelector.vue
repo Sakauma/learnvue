@@ -35,7 +35,7 @@ const currentSpecificAlgorithms = computed(() => {
 
 function handleAlgorithmTypeChange(value) {
   emit('update:algorithmType', value);
-  emit('update:specificAlgorithm', ''); // Reset specific algorithm
+  emit('update:specificAlgorithm', '');
 }
 
 watch(() => props.algorithmType, () => {

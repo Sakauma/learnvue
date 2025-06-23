@@ -11,14 +11,14 @@ import { useRouter } from 'vue-router';
 
 export default {
   name: "AppIndex",
-  setup() { // 使用 Composition API 的 setup 函数
-    const router = useRouter(); // 获取 router 实例
+  setup() {
+    const router = useRouter();
 
-    const logOut = () => { // 定义 logOut 方法
-      router.replace("/"); // 使用 router 实例进行路由跳转
+    const logOut = () => {
+      router.replace("/");
     };
 
-    return { // 返回 setup 函数中定义的数据和方法
+    return {
       logOut
     };
   }

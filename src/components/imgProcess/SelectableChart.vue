@@ -49,7 +49,7 @@ const redrawChart = () => {
     const seriesData = featureData.map((y, index) => [xValues[index], parseFloat(y) || 0]);
     updateChartData(seriesData, `${chartTitle} 数据曲线`);
   } else {
-    // 当数据为空或null时，此部分代码会执行，传入空数组来清空图表
+    // 当数据为空或null时，传入空数组来清空图表
     updateChartData([], `${chartTitle} 数据曲线 (无数据)`);
   }
 };
@@ -63,7 +63,6 @@ const handleSelectionChange = () => {
 };
 
 onMounted(() => {
-  // 使用 setTimeout 确保 ECharts 容器已渲染
   setTimeout(() => {
     redrawChart();
   }, 0);

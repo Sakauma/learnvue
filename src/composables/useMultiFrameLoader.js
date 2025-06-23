@@ -155,7 +155,7 @@ export function useMultiFrameLoader(showNotificationCallback) {
 
         if (acceptedFiles.length === 0) {
             showNotificationCallback('⚠️ 选择的文件夹中没有找到支持的图像文件。');
-            return; // 直接返回，因为没有文件可加载，isLoadingFrame 应该保持 false
+            return;
         }
 
         acceptedFiles.sort((a, b) => a.name.localeCompare(b.name, undefined, {numeric: true, sensitivity: 'base'}));

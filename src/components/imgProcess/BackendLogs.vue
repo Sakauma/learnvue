@@ -1,24 +1,35 @@
 /*BackendLogs.vue*/
 <template>
+  <!-- 日志容器 -->
   <div class="log-container">
+    <!-- 连接状态显示区域 -->
     <div class="connection-status" :class="connectionStatusClass">
       {{ connectionStatusText }}
+      <!-- 显示最后一条日志的时间 -->
       <span v-if="lastLogTime">最后日志: {{ lastLogTime }}</span>
     </div>
 
+    <!-- 控制区域 -->
     <div class="controls">
+      <!-- 控制组 -->
       <div class="control-group">
+        <!-- 切换连接状态的按钮 -->
         <button @click="toggleConnection">
           {{ isConnected ? '停止接收' : '开始接收' }}日志
         </button>
+        <!-- 清空日志的按钮 -->
         <button @click="clearLogs">清空日志</button>
+        <!-- 自动滚动复选框 -->
         <label class="checkbox-label">
           <input type="checkbox" v-model="autoScroll" />
           自动滚动
         </label>
       </div>
+      <!-- 过滤控制组 -->
       <div class="control-group filter-group">
+        <!-- 关键词过滤输入框 -->
         <input class="filter-input" type="text" v-model="filterKeyword" placeholder="按关键字过滤..." />
+        <!-- 日志级别过滤复选框组 -->
         <div class="level-filters">
           <label v-for="(enabled, level) in filterLevels" :key="level" :class="['level-label', 'log-' + level.toLowerCase()]">
             <input type="checkbox" v-model="filterLevels[level]" /> {{ level }}
@@ -27,18 +38,24 @@
       </div>
     </div>
 
+    <!-- 日志显示区域 -->
     <div ref="logDisplay" class="log-display">
+      <!-- 过滤后的日志列表 -->
       <div v-if="filteredLogs.length > 0">
         <div
             v-for="log in filteredLogs"
             :key="log.id"
             :class="['log-entry', logLevelClass(log)]"
         >
+          <!-- 日志时间戳 -->
           <span class="timestamp">{{ log.timestamp }}</span>
+          <!-- 日志级别 -->
           <span class="level">{{ log.level }}</span>
+          <!-- 日志内容 -->
           <span class="message">{{ log.message }}</span>
         </div>
       </div>
+      <!-- 空日志提示 -->
       <div v-else class="empty-logs">
         {{ emptyMessage }}
       </div>
@@ -49,27 +66,30 @@
 <script setup>
 import { ref, nextTick, computed, watch } from 'vue';
 
+// 定义组件的props，接收父组件传递的日志数据、连接状态和连接尝试次数
 const props = defineProps({
-  logs: {
+  logs: {  // 日志数组
     type: Array,
     required: true,
   },
-  connectionStatus: {
+  connectionStatus: {  // 连接状态
     type: String,
     required: true,
   },
-  connectionAttempts: {
+  connectionAttempts: {  // 连接尝试次数
     type: Number,
     required: true,
   }
 });
 
+// 定义组件的emit，用于向父组件发送事件
 const emit = defineEmits(['toggle-connection', 'clear-logs']);
 
-const autoScroll = ref(true);
-const logDisplay = ref(null);
-const filterKeyword = ref('');
-const filterLevels = ref({
+// 定义响应式变量
+const autoScroll = ref(true);  // 是否自动滚动到底部
+const logDisplay = ref(null);  // 日志显示区域的DOM引用
+const filterKeyword = ref('');  // 日志过滤关键词
+const filterLevels = ref({  // 日志级别过滤设置
   'ERROR': true,
   'WARN': true,
   'INFO': true,
@@ -77,35 +97,45 @@ const filterLevels = ref({
   'TRACE': false,
 });
 
-const isConnected = computed(() => ['connecting', 'connected'].includes(props.connectionStatus));
+// 计算属性：是否已连接（连接中或已连接）
+const isConnected = computed(() =>
+    ['connecting', 'connected'].includes(props.connectionStatus)
+);
 
+// 计算属性：获取最后一条日志的时间戳
 const lastLogTime = computed(() => {
   if (props.logs && props.logs.length > 0) {
     const lastLog = props.logs[props.logs.length - 1];
     if (lastLog && typeof lastLog.timestamp === 'string') {
-      return lastLog.timestamp.substring(0, 8);
+      return lastLog.timestamp.substring(0, 8);  // 提取前8个字符作为日期
     }
   }
   return null;
 });
 
+// 计算属性：过滤后的日志列表
 const filteredLogs = computed(() => {
   return props.logs.filter(log => {
-    const levelMatch = filterLevels.value[log.level];
-    const keywordMatch = filterKeyword.value
+    const levelMatch = filterLevels.value[log.level];  // 检查日志级别是否匹配
+    const keywordMatch = filterKeyword.value  // 检查日志内容是否包含关键词
         ? log.raw.toLowerCase().includes(filterKeyword.value.toLowerCase())
         : true;
-    return levelMatch && keywordMatch;
+    return levelMatch && keywordMatch;  // 返回同时满足级别和关键词的日志
   });
 });
 
+// 计算属性：空日志提示消息
 const emptyMessage = computed(() => {
-  if (props.logs.length > 0 && filteredLogs.value.length === 0) return '没有匹配过滤条件的日志';
-  if (props.connectionStatus === 'connected') return '已连接 - 等待日志数据...';
-  if (props.connectionStatus === 'connecting') return '正在连接到日志服务...';
+  if (props.logs.length > 0 && filteredLogs.value.length === 0)
+    return '没有匹配过滤条件的日志';
+  if (props.connectionStatus === 'connected')
+    return '已连接 - 等待日志数据...';
+  if (props.connectionStatus === 'connecting')
+    return '正在连接到日志服务...';
   return '未连接，点击"开始接收日志"连接服务';
 });
 
+// 计算属性：连接状态文本
 const connectionStatusText = computed(() => {
   switch (props.connectionStatus) {
     case 'disconnected': return '未连接';
@@ -116,33 +146,39 @@ const connectionStatusText = computed(() => {
   }
 });
 
+// 计算属性：连接状态对应的CSS类名
 const connectionStatusClass = computed(() => `status-${props.connectionStatus}`);
 
+// 方法：根据日志级别返回对应的CSS类名
 const logLevelClass = (logObject) => `log-${logObject.level.toLowerCase()}`;
 
+// 监听过滤后日志数量的变化，自动滚动到底部
 watch(
-    () => filteredLogs.value.length, // 监听过滤后日志的数量变化
+    () => filteredLogs.value.length,  // 监听过滤后日志数量
     () => {
       if (autoScroll.value) {
-        nextTick(() => {
+        nextTick(() => {  // 确保DOM更新后执行
           const display = logDisplay.value;
           if (display) {
-            display.scrollTo({ top: display.scrollHeight, behavior: 'smooth' });
+            display.scrollTo({ top: display.scrollHeight, behavior: 'smooth' });  // 平滑滚动到底部
           }
         });
       }
     }
 );
 
+// 方法：切换连接状态
 const toggleConnection = () => {
-  emit('toggle-connection');
+  emit('toggle-connection');  // 触发父组件的toggle-connection事件
 };
 
+// 方法：清空日志
 const clearLogs = () => {
-  emit('clear-logs');
+  emit('clear-logs');  // 触发父组件的clear-logs事件
 };
 
 </script>
+
 
 <style scoped>
 .log-container {

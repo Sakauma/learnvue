@@ -1,7 +1,9 @@
 /*AppNotification.vue*/
 <template>
+  <!-- 使用Vue的Transition组件包裹错误提示弹窗，实现动画效果 -->
   <transition name="error-fade">
     <div v-if="notificationState.show" class="error-popup">
+      <!-- 显示错误消息内容 -->
       {{ notificationState.message }}
     </div>
   </transition>

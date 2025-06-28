@@ -1,16 +1,25 @@
 /*MultiFrameSystem.vue*/
 <template>
   <div class="multi-frame-system-wrapper">
+    <!-- 控制栏区域 -->
     <div class="controls-bar-area">
+      <!-- 常用控制按钮 -->
       <div class="common-controls">
+        <!-- 选择文件夹按钮 -->
         <el-button class="bar-button" :icon="Upload" title="选择文件夹" @click="requestFolderSelectionForPreview"></el-button>
+        <!-- 清除所有帧按钮 -->
         <el-button class="bar-button" :icon="Delete" title="清除所有帧" @click="handleDeleteAllPreviewFrames" :disabled="previewLoader.totalFrames.value === 0 && props.actualResultFrameCount === 0"></el-button>
+        <!-- 放大按钮 -->
         <el-button class="bar-button" :icon="ZoomIn" title="放大" @click="$emit('zoom-in')" :disabled="!isAnyFrameDisplayable"></el-button>
+        <!-- 缩小按钮 -->
         <el-button class="bar-button" :icon="ZoomOut" title="缩小" @click="$emit('zoom-out')" :disabled="!isAnyFrameDisplayable"></el-button>
       </div>
 
+      <!-- 帧导航控制区域 -->
       <div class="frame-navigation-controls" v-if="navControlsVisible">
+        <!-- 左箭头导航按钮 -->
         <el-button class="nav-btn" :icon="ArrowLeftBold" @click="navigateFrames(-1)" :disabled="currentNavigationIndex <= 0 || (!isInResultsMode && previewLoader.isLoadingFrame.value)"></el-button>
+        <!-- 帧滑块 -->
         <el-slider
             class="frame-slider"
             :model-value="currentNavigationIndex"
@@ -22,15 +31,20 @@
             :format-tooltip="formatNavigationSliderTooltip"
             show-stops
         ></el-slider>
+        <!-- 右箭头导航按钮 -->
         <el-button class="nav-btn" :icon="ArrowRightBold" @click="navigateFrames(1)" :disabled="currentNavigationIndex >= navigationTotalFrames - 1 || (!isInResultsMode && previewLoader.isLoadingFrame.value)"></el-button>
+        <!-- 帧指示器文本 -->
         <span class="frame-indicator">{{ navigationFrameIndicatorText }}</span>
       </div>
+      <!-- 无帧时的占位符 -->
       <div v-else class="frame-navigation-controls no-frames-placeholder">
         选择文件夹
       </div>
     </div>
 
+    <!-- 图像显示区域 -->
     <div class="image-display-area" ref="imageContainerForMultiRef">
+      <!-- 预览图像 -->
       <el-image
           v-if="previewLoader.currentFrameImageUrl.value"
           :key="previewLoader.currentFrameImageUrl.value"
@@ -39,9 +53,11 @@
           class="responsive-image"
           :style="{ transform: `scale(${props.zoomLevel / 100})`, transformOrigin: 'center center' }"
       ></el-image>
+      <!-- 图像占位符 -->
       <div v-if="!previewLoader.currentFrameImageUrl.value && !previewLoader.isLoadingFrame.value" class="image-placeholder">
         {{ previewLoader.totalFrames.value > 0 ? '导航' : (props.actualResultFrameCount > 0 ? '结果已生成，请使用上方导航查看结果区域' : '选择文件夹预览') }}
       </div>
+      <!-- 加载中占位符 -->
       <div v-if="previewLoader.isLoadingFrame.value" class="image-placeholder">原始图像加载中...</div>
     </div>
   </div>
@@ -54,31 +70,38 @@ import { Upload, Delete, ZoomIn, ZoomOut, ArrowLeftBold, ArrowRightBold } from '
 import { useMultiFrameLoader } from '../../composables/useMultiFrameLoader.js';
 import { useNotifications } from '../../composables/useNotifications.js'
 
+// 定义组件属性
 const props = defineProps({
-  zoomLevel: { type: Number, default: 100 },
-  imageRows: { type: Number, required: true },
-  imageCols: { type: Number, required: true },
-  actualResultFrameCount: { type: Number, default: 0 },
-  currentResultFrameIndex: { type: Number, default: -1 }
+  zoomLevel: { type: Number, default: 100 }, // 缩放级别，默认100%
+  imageRows: { type: Number, required: true }, // 图像行数
+  imageCols: { type: Number, required: true }, // 图像列数
+  actualResultFrameCount: { type: Number, default: 0 }, // 实际结果帧数
+  currentResultFrameIndex: { type: Number, default: -1 } // 当前结果帧索引
 });
 
+// 定义组件事件
 const emit = defineEmits([
-  'request-folder-select',
-  'zoom-in',
-  'zoom-out',
-  'delete-all-frames',
-  'update:currentResultFrameIndex'
+  'request-folder-select', // 请求选择文件夹
+  'zoom-in', // 放大
+  'zoom-out', // 缩小
+  'delete-all-frames', // 删除所有帧
+  'update:currentResultFrameIndex' // 更新当前结果帧索引
 ]);
 
+// 使用通知功能
 const notifications = useNotifications();
+// 使用多帧加载器
 const previewLoader = useMultiFrameLoader(notifications.showNotification);
 
+// 计算属性：是否在结果模式
 const isInResultsMode = computed(() => props.actualResultFrameCount > 0);
 
+// 计算属性：导航总帧数
 const navigationTotalFrames = computed(() => {
   return isInResultsMode.value ? props.actualResultFrameCount : previewLoader.totalFrames.value;
 });
 
+// 计算属性：当前导航索引
 const currentNavigationIndex = computed(() => {
   if (isInResultsMode.value && props.currentResultFrameIndex >= 0) {
     return props.currentResultFrameIndex;
@@ -86,8 +109,10 @@ const currentNavigationIndex = computed(() => {
   return isInResultsMode.value ? (props.currentResultFrameIndex >= 0 ? props.currentResultFrameIndex : 0) : previewLoader.currentIndex.value;
 });
 
+// 计算属性：是否显示导航控制
 const navControlsVisible = computed(() => navigationTotalFrames.value > 0);
 
+// 计算属性：是否有可显示的帧
 const isAnyFrameDisplayable = computed(() => {
   if (isInResultsMode.value) {
     return props.actualResultFrameCount > 0;
@@ -95,7 +120,7 @@ const isAnyFrameDisplayable = computed(() => {
   return !!previewLoader.currentFrameImageUrl.value && !previewLoader.isLoadingFrame.value;
 });
 
-
+// 计算属性：帧指示器文本
 const navigationFrameIndicatorText = computed(() => {
   if (navigationTotalFrames.value === 0) return '无帧';
   const prefix = isInResultsMode.value ? '结果: ' : '预览: ';
@@ -103,6 +128,7 @@ const navigationFrameIndicatorText = computed(() => {
   return `${prefix}${displayIndex} / ${navigationTotalFrames.value}`;
 });
 
+// 处理滑块变化
 function handleSliderChange(newIndex) {
   if (isInResultsMode.value) {
     emit('update:currentResultFrameIndex', newIndex);
@@ -113,6 +139,7 @@ function handleSliderChange(newIndex) {
   }
 }
 
+// 导航帧
 function navigateFrames(direction) {
   let newCalculatedIndex = currentNavigationIndex.value + direction;
 
@@ -134,6 +161,7 @@ function navigateFrames(direction) {
   }
 }
 
+// 同步预览帧到索引
 function syncPreviewFrameToIndex(index) {
   if (previewLoader && typeof previewLoader.loadFrame === 'function') {
     const totalPreviewFrames = previewLoader.totalFrames?.value;
@@ -153,6 +181,7 @@ function syncPreviewFrameToIndex(index) {
   }
 }
 
+// 格式化导航滑块提示
 function formatNavigationSliderTooltip(value) {
   const prefix = isInResultsMode.value ? '结果帧 ' : '预览帧 ';
   if (!isInResultsMode.value && previewLoader.fileListNames.value[value]) {
@@ -161,13 +190,16 @@ function formatNavigationSliderTooltip(value) {
   return `${prefix}${value + 1}`;
 }
 
+// 请求选择文件夹
 function requestFolderSelectionForPreview() {
   emit('request-folder-select');
 }
 
+// 监听当前帧文件变化
 watch(previewLoader.currentFrameFile, (newFile) => {
 }, {deep: true});
 
+// 加载文件夹用于预览
 function loadFolderForPreview(htmlFileList, precision) {
   if (props.imageRows > 0 && props.imageCols > 0) {
     previewLoader.processSelectedFiles(htmlFileList, props.imageRows, props.imageCols, precision);
@@ -178,11 +210,13 @@ function loadFolderForPreview(htmlFileList, precision) {
   }
 }
 
+// 处理删除所有预览帧
 function handleDeleteAllPreviewFrames() {
   const didClearPreview = previewLoader.totalFrames.value > 0;
   emit('delete-all-frames', { previewCleared: didClearPreview });
 }
 
+// 暴露方法给外部使用
 defineExpose({
   loadFolder: loadFolderForPreview,
   clearPreviewFrames: previewLoader.clearFrames,
@@ -190,6 +224,7 @@ defineExpose({
 });
 
 </script>
+
 
 <style scoped>
 .multi-frame-system-wrapper {

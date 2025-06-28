@@ -1,6 +1,7 @@
 /*ImageZoomSlider.vue*/
 <template>
   <div class="slider-input-container">
+    <!-- 大小滑块组件-->
     <el-slider
         :model-value="modelValue"
         @update:modelValue="$emit('update:modelValue', $event)"

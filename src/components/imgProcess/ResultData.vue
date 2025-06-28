@@ -1,19 +1,27 @@
 /*ResultData.vue*/
 <template>
+  <!-- 结果数据容器 -->
   <div class="result-data-container">
+    <!-- 表格头部包装器 -->
     <div class="table-header-wrapper">
+      <!-- 表格标题，根据dataMode和idx动态显示 -->
       <h4 class="table-title">
         {{ dataMode ? `特征数据 (帧: ${idx + 1})` : '特征数据' }}
       </h4>
     </div>
 
+    <!-- 特征表格组件 -->
     <el-table
         :data="tableData"
-        :show-header="tableData.length > 0 && props.dataMode" :empty-text="emptyText"
+        :show-header="tableData.length > 0 && props.dataMode"
+        :empty-text="emptyText"
         style="width: 100%"
-        class="data-element-table" >
+        class="data-element-table">  // 添加表格样式类
+      <!-- 特征名称列 -->
       <el-table-column prop="name" label="特征名称" width="250" />
+      <!-- 值列 -->
       <el-table-column prop="value" label="值">
+        <!-- 自定义列内容 -->
         <template #default="{ row }">
           <span>{{ row.displayValue }}</span>
         </template>
@@ -28,67 +36,80 @@ import { computed } from 'vue';
 import { ElTable, ElTableColumn } from 'element-plus';
 import { FEATURE_DEFINITIONS } from '../../config/featureConfig.js';
 
+// 定义组件的props，接收父组件传递的参数
 const props = defineProps({
-  idx: {
+  idx: {       // 索引值，用于数组类型的特征数据
     type: Number,
     default: 0,
   },
-  dataValue: {
+  dataValue: { // 特征数据对象
     type: Object,
     default: () => ({}),
   },
-  dataMode: {
+  dataMode: {  // 是否为数据模式（显示实际数据）
     type: Boolean,
     default: false,
   },
 });
 
+// 计算属性：根据dataMode和dataValue生成表格数据
 const tableData = computed(() => {
   if (!props.dataMode) {
+    // 非数据模式：返回FEATURE_DEFINITIONS的默认结构，displayValue设为'N/A'
     return FEATURE_DEFINITIONS.map(feature => ({
       name: feature.label,
       displayValue: 'N/A',
     }));
   }
 
+  // 检查是否有有效数据
   const hasData = props.dataValue && Object.keys(props.dataValue).length > 0;
   if (!hasData) {
+    // 无有效数据：返回FEATURE_DEFINITIONS的默认结构，displayValue设为'N/A'
     return FEATURE_DEFINITIONS.map(feature => ({
       name: feature.label,
       displayValue: 'N/A',
     }));
   }
 
+  // 数据模式且有有效数据：根据FEATURE_DEFINITIONS和dataValue生成表格数据
   return FEATURE_DEFINITIONS.map(feature => {
-    const featureRawValue = props.dataValue[feature.key];
+    const featureRawValue = props.dataValue[feature.key]; // 获取当前特征的原始值
     let displayValue = 'N/A'; // 默认值
 
+    // 处理不同类型的特征值
     if (featureRawValue !== undefined && featureRawValue !== null) {
       if (Array.isArray(featureRawValue) &&
           props.idx >= 0 &&
           props.idx < featureRawValue.length &&
           typeof featureRawValue[props.idx] === 'number') {
+        // 数组类型且索引有效：取指定索引的值并格式化为4位小数
         displayValue = featureRawValue[props.idx].toFixed(4);
       }
       else if (typeof featureRawValue === 'number') {
+        // 数字类型：格式化为4位小数
         displayValue = featureRawValue.toFixed(4);
       }
     }
 
     return {
-      name: feature.label,
-      displayValue,
+      name: feature.label,      // 特征名称
+      displayValue,            // 显示值
     };
   });
 });
 
+// 计算属性：根据dataMode和数据情况生成空数据提示文本
 const emptyText = computed(() => {
   if (props.dataMode && (!props.dataValue || Object.keys(props.dataValue).length === 0)) {
+    // 数据模式且无有效数据：返回特定提示
     return '当前帧无有效特征数据';
   }
+  // 其他情况：返回通用提示
   return '无数据';
 });
 </script>
+
 
 <style scoped>
 .result-data-container {

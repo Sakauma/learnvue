@@ -1,11 +1,22 @@
 import { ref, onMounted, onBeforeUnmount } from 'vue';
 import * as echarts from 'echarts';
 
-// 正态分布函数
+/**
+ * 计算正态分布概率密度函数值
+ * @param {number} x - 输入值
+ * @param {number} mean - 均值
+ * @param {number} std - 标准差
+ * @returns {number} 正态分布概率密度
+ */
 const normalDistribution = (x, mean, std) => {
     return (1 / (std * Math.sqrt(2 * Math.PI))) * Math.exp(-((x - mean) ** 2) / (2 * std ** 2));
 };
 
+/**
+ * 生成初始正态分布数据
+ * @param {number} chartIndex - 图表索引（影响均值）
+ * @returns {Object} 包含两条曲线数据的对象
+ */
 const generateInitialLocalData = (chartIndex) => {
     const mean1Base = chartIndex * 0.5 + 1;
     const std1 = 0.5;
@@ -19,6 +30,12 @@ const generateInitialLocalData = (chartIndex) => {
     return { data1, data2 };
 };
 
+/**
+ * ECharts图表组合式函数
+ * @param {Ref} chartRef - 图表容器的模板引用
+ * @param {number} chartIndex - 图表索引（用于区分不同图表）
+ * @returns {Object} 包含更新图表方法和初始化状态的对象
+ */
 export function useChart(chartRef, chartIndex) {
     let chartInstance = null;
     const isInitialized = ref(false);
@@ -115,7 +132,11 @@ export function useChart(chartRef, chartIndex) {
         chartInstance.setOption(initialOption);
     };
 
-    // newData: 期望格式为 [[x,y], [x,y], ...]
+    /**
+     * 更新图表数据
+     * @param {Array} newChartData - 新数据集（格式：[[x,y], ...]）
+     * @param {string} [seriesName='数据曲线'] - 系列名称
+     */
     const updateChart = (newChartData, seriesName = '数据曲线') => {
         if (chartInstance && isInitialized.value && !chartInstance.isDisposed()) {
             const newOption = {
@@ -175,4 +196,3 @@ export function useChart(chartRef, chartIndex) {
 
     return { updateChartData: updateChart, isInitialized };
 }
-

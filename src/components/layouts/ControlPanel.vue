@@ -1,13 +1,16 @@
-/*ControlPanel.vue*/
 <template>
   <div class="control-panel-wrapper">
+    <!-- 控制面板的主容器，包含所有控制元素 -->
     <el-row class="menu-button-row">
+      <!-- 第一行：包含模式选择、算法选择和识别按钮 -->
       <el-col :span="12" class="left-menu-buttons">
+        <!-- 左侧菜单按钮组 -->
         <el-select
             :model-value="props.selectedMode"
             @update:model-value="emit('update:selectedMode', $event)"
             class="mode-select custom-menu-select"
             placeholder="选择模式">
+          <!-- 模式选择下拉框，用于切换单帧和多帧模式 -->
           <el-option label="单帧模式" value="singleFrame"></el-option>
           <el-option label="多帧模式" value="multiFrame"></el-option>
         </el-select>
@@ -18,6 +21,7 @@
             @update:algorithmType="emit('update:algorithmType', $event)"
             @update:specificAlgorithm="emit('update:specificAlgorithm', $event)"
         />
+        <!-- 算法选择器组件，用于选择图像处理算法 -->
 
         <el-button
             class="inference-button"
@@ -25,18 +29,22 @@
             :disabled="props.isLoading || !props.canInferInCurrentMode">
           {{ props.isMultiFrameMode ? '识别多帧' : '识别单帧' }}
         </el-button>
+        <!-- 识别按钮，根据当前模式显示不同的文本，并在加载或不可识别时禁用 -->
       </el-col>
       <el-col :span="12" class="right-menu-buttons">
+        <!-- 右侧菜单按钮组 -->
         <ActionButtons
             :is-loading="props.isLoading"
             @custom-action-3="emit('customAction3')"
             @edit-config="props.onOpenConfigEditor"
         />
+        <!-- 操作按钮组件，包含自定义操作和配置编辑器打开功能 -->
       </el-col>
     </el-row>
 
 
     <el-row :gutter="10" class="additional-inputs-row image-params-row" align="middle">
+      <!-- 第二行：包含图像参数输入，如行数、列数和数据精度 -->
       <el-col :span="12">
         <el-row :gutter="12" align="middle">
           <el-col :span="12">
@@ -47,6 +55,7 @@
                   @update:model-value="emit('update:imageRows', $event)"
                   :min="1" controls-position="right" class="param-input-number" placeholder="行数"></el-input-number>
             </div>
+            <!-- 图像行数输入框，用于设置图像的行数 -->
           </el-col>
           <el-col :span="12">
             <div class="param-input-group">
@@ -56,6 +65,7 @@
                   @update:model-value="emit('update:imageCols', $event)"
                   :min="1" controls-position="right" class="param-input-number" placeholder="列数"></el-input-number>
             </div>
+            <!-- 图像列数输入框，用于设置图像的列数 -->
           </el-col>
         </el-row>
       </el-col>
@@ -72,10 +82,12 @@
             <el-option label="8位整型" value="uint8" />
           </el-select>
         </div>
+        <!-- 数据精度选择器，用于选择图像数据的数据类型 -->
       </el-col>
     </el-row>
 
     <el-row :gutter="20" class="additional-inputs-row" v-if="props.isMultiFrameMode">
+      <!-- 第三行：仅在多帧模式下显示，用于输入手动识别的文件夹路径 -->
       <el-col :span="18">
         <el-input
             :model-value="props.manualFolderPath"
@@ -85,9 +97,11 @@
             @keyup.enter="emit('confirmManualFolderPath')">
           <template #prepend>识别路径</template>
         </el-input>
+        <!-- 手动文件夹路径输入框，用于输入多帧识别的文件夹路径 -->
       </el-col>
       <el-col :span="6">
         <el-button @click="emit('confirmManualFolderPath')" style="width: 100%;">确认目录</el-button>
+        <!-- 确认目录按钮，用于确认输入的文件夹路径 -->
       </el-col>
     </el-row>
 
@@ -97,6 +111,7 @@
         :initial-data="props.currentConfig"
         @save="props.onSaveConfig"
     />
+    <!-- 配置编辑器组件，用于编辑和保存配置 -->
   </div>
 </template>
 
@@ -107,34 +122,34 @@ import ActionButtons from '../imgProcess/ActionButtons.vue';
 import IniConfigEditor from '../imgProcess/IniConfigEditor.vue';
 
 const props = defineProps({
-  selectedMode: String,
-  algorithmType: String,
-  specificAlgorithm: String,
-  isLoading: Boolean,
-  canInferInCurrentMode: Boolean,
-  isMultiFrameMode: Boolean,
-  imageRows: Number,
-  imageCols: Number,
-  selectedPrecision: String,
-  manualFolderPath: String,
-  isConfigEditorVisible: Boolean,
-  currentConfig: Object,
-  onOpenConfigEditor: Function,
-  onSaveConfig: Function,
+  selectedMode: String, // 当前选择的模式（单帧或多帧）
+  algorithmType: String, // 当前选择的算法类型
+  specificAlgorithm: String, // 当前选择的特定算法
+  isLoading: Boolean, // 是否正在加载
+  canInferInCurrentMode: Boolean, // 当前模式是否可以识别
+  isMultiFrameMode: Boolean, // 是否为多帧模式
+  imageRows: Number, // 图像的行数
+  imageCols: Number, // 图像的列数
+  selectedPrecision: String, // 选择的数据精度
+  manualFolderPath: String, // 手动输入的文件夹路径
+  isConfigEditorVisible: Boolean, // 配置编辑器是否可见
+  currentConfig: Object, // 当前的配置数据
+  onOpenConfigEditor: Function, // 打开配置编辑器的回调函数
+  onSaveConfig: Function, // 保存配置的回调函数
 });
 
 const emit = defineEmits([
-  'update:selectedMode',
-  'update:algorithmType',
-  'update:specificAlgorithm',
-  'update:imageRows',
-  'update:imageCols',
-  'update:selectedPrecision',
-  'update:manualFolderPath',
-  'infer',
-  'customAction3',
-  'confirmManualFolderPath',
-  'update:isConfigEditorVisible'
+  'update:selectedMode', // 更新模式
+  'update:algorithmType', // 更新算法类型
+  'update:specificAlgorithm', // 更新特定算法
+  'update:imageRows', // 更新图像行数
+  'update:imageCols', // 更新图像列数
+  'update:selectedPrecision', // 更新数据精度
+  'update:manualFolderPath', // 更新手动文件夹路径
+  'infer', // 触发识别
+  'customAction3', // 自定义操作3
+  'confirmManualFolderPath', // 确认手动文件夹路径
+  'update:isConfigEditorVisible' // 更新配置编辑器可见性
 ]);
 </script>
 

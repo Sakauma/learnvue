@@ -1,26 +1,32 @@
 /*ImageViewerCard.vue*/
 <template>
+  <!-- 整个图像卡片容器 -->
   <div class="image-card">
+    <!-- 使用Element Plus的图片组件 -->
     <el-image
         v-if="imageUrl"
         :src="imageUrl"
         fit="contain"
         class="card-image"
     >
+      <!-- 图片加载失败时的占位内容 -->
       <template #error>
         <div class="image-slot-placeholder">
           <span>图像加载失败</span>
         </div>
       </template>
+      <!-- 图片加载中的占位内容 -->
       <template #placeholder>
         <div class="image-slot-placeholder">
           <span>加载中...</span>
         </div>
       </template>
     </el-image>
+    <!-- 当没有图片URL时的占位内容 -->
     <div v-else class="image-slot-placeholder">
       <span>无图像数据</span>
     </div>
+    <!-- 图像标签显示区域 -->
     <div class="image-label">{{ label }}</div>
   </div>
 </template>

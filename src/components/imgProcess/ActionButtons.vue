@@ -1,9 +1,22 @@
 /*ActionButtons.vue*/
 <template>
+  <!-- 动作按钮容器，用于集中展示功能按钮 -->
   <div class="action-buttons-container">
     <span style="color: white; margin: 0 10px;">--></span>
-    <el-button class="feature-button" @click="$emit('custom-action-3')">感兴趣图像区域计算</el-button>
-    <el-button class="feature-button" @click="$emit('edit-config')">编辑算法配置文件</el-button>
+
+    <!-- 感兴趣图像区域计算按钮 -->
+    <el-button
+        class="feature-button"
+        @click="$emit('custom-action-3')">
+      感兴趣图像区域计算
+    </el-button>
+
+    <!-- 编辑算法配置文件按钮 -->
+    <el-button
+        class="feature-button"
+        @click="$emit('edit-config')">
+      编辑算法配置文件
+    </el-button>
   </div>
 </template>
 
@@ -11,11 +24,21 @@
 import { ElButton } from 'element-plus';
 
 defineProps({
+  // 加载状态，用于控制按钮的禁用状态
   isLoading: Boolean,
+  // 是否允许识别，用于控制按钮的可用性
   canInfer: Boolean,
 });
-defineEmits(['infer', 'custom-action-3', 'edit-config']);
+
+defineEmits([
+  'infer',
+  // 触发自定义动作3的事件
+  'custom-action-3',
+  // 触发编辑配置文件的事件
+  'edit-config'
+]);
 </script>
+
 
 <style scoped>
 .action-buttons-container {

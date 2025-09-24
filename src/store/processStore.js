@@ -37,16 +37,18 @@ export const useProcessStore = defineStore('process', {
         imageCols: 320,
         /** @type {string} 选择的图像数据精度 (例如 'float64') */
         selectedPrecision: 'float64',
-        /** @type {string} 用户在UI中手动输入的文件夹路径（多帧模式） */
-        manualFolderPath: '',
+        // /** @type {string} 用户在UI中手动输入的文件夹路径（多帧模式） */
+        // manualFolderPath: '',
         /** @type {File | null} 单帧模式下上传的原始文件对象 */
         singleFrameFile: null,
         /** @type {string} 单帧模式下上传文件的MD5校验值 */
         singleFrameFileMD5: '',
         /** @type {object | null} 单帧模式下的裁剪坐标 */
         cropCoordinates: null,
-        /** @type {string} 多帧模式下，最终确认用于识别的文件夹路径 */
-        originalFolderPath: '',
+        // /** @type {string} 多帧模式下，最终确认用于识别的文件夹路径 */
+        // originalFolderPath: '',
+        /** 用于存储待上传文件的 state */
+        multiFrameFiles: [],
         /** @type {string} API返回的结果文件所在的基础路径 */
         resultFolderPathFromApi: '',
         /** @type {object | null} API返回的结果文件列表，包含原始、ROI和输出图像名 */
@@ -78,6 +80,8 @@ export const useProcessStore = defineStore('process', {
          */
         numberOfResultFrames: (state) => state.resultFilesFromApi?.outputImageNames?.length || 0,
 
+
+        uploadProgress: () => inferenceHandler.uploadProgress.value,
         /**
          * @description 判断在当前模式和状态下是否满足执行“识别”操作的条件。
          * @param {object} state - 当前的 store state。
@@ -86,7 +90,8 @@ export const useProcessStore = defineStore('process', {
         canInferInCurrentMode: (state) => {
             if (!state.selectedSpecificAlgorithm) return false; // 必须选择一个算法
             if (state.selectedMode === 'multiFrame') {
-                return !!state.originalFolderPath.trim(); // 多帧模式下必须有确认的文件夹路径
+                return state.multiFrameFiles.length > 0;
+                //return !!state.originalFolderPath.trim(); // 多帧模式下必须有确认的文件夹路径
             }
             return !!state.singleFrameFile; // 单帧模式下必须有上传的文件
         },
@@ -120,14 +125,11 @@ export const useProcessStore = defineStore('process', {
             this.singleFrameFileMD5 = md5;
         },
 
-        /**
-         * @description 设置多帧模式下最终用于识别的文件夹路径。
-         * @param {string} path - 文件夹的绝对路径。
-         */
-        setOriginalFolderPath(path) {
-            this.originalFolderPath = path.trim();
-            if(this.originalFolderPath) {
-                notifications.showNotification(`识别路径已确认为: ${this.originalFolderPath}。`);
+        // --- 新增：用于设置待上传文件的 action ---
+        setMultiFrameFiles(files) {
+            this.multiFrameFiles = files;
+            if (files.length > 0) {
+                notifications.showNotification(`已加载 ${files.length} 个文件准备识别。`);
             }
         },
 
@@ -154,8 +156,9 @@ export const useProcessStore = defineStore('process', {
          * @description 重置所有与多帧模式相关的状态。
          */
         resetMultiFrameData() {
-            this.manualFolderPath = '';
-            this.originalFolderPath = '';
+            this.multiFrameFiles = []; // <-- 新增
+            //this.manualFolderPath = '';
+            //this.originalFolderPath = '';
             this.resultFolderPathFromApi = '';
             this.resultFilesFromApi = null;
             this.currentMultiFrameIndex = -1;
@@ -224,19 +227,17 @@ export const useProcessStore = defineStore('process', {
             this.resultFilesFromApi = null;
             this.currentMultiFrameIndex = -1;
 
-            const result = await inferenceHandler.performFolderPathInference(
-                this.originalFolderPath,
+            const result = await inferenceHandler.performMultiFrameInference(
+                this.multiFrameFiles,
                 this.selectedSpecificAlgorithm
             );
 
             if (result?.success && result.data) {
-                // 更新状态
                 this.resultFolderPathFromApi = result.data.resultPath || '';
                 this.resultFilesFromApi = result.data.resultFiles || null;
                 if (this.numberOfResultFrames > 0) {
-                    this.currentMultiFrameIndex = 0; // 默认显示第一帧结果
+                    this.currentMultiFrameIndex = 0;
                     if (this.resultFolderPathFromApi) {
-                        // 识别成功后，立即获取用于图表的特征数据
                         await this._fetchFeatureDataForCharts();
                     } else {
                         notifications.showNotification('⚠️ 未能获取结果文件夹路径，无法加载图表数据。', 2500);

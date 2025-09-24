@@ -1,4 +1,4 @@
-import { ref } from 'vue';
+import { ref, readonly } from 'vue';
 import axios from 'axios';
 
 // 设置axios的默认基础URL为'api'
@@ -16,6 +16,9 @@ export function useInference(showNotificationCallback) {
     const resultImageUrl = ref(null);
     // 响应式变量：存储文本结果数组
     const textResults = ref([]);
+
+    // 用于跟踪上传进度的
+    const uploadProgress = ref(0);
 
     /**
      * 执行文件识别操作
@@ -108,64 +111,57 @@ export function useInference(showNotificationCallback) {
         }
     }
 
-    /**
-     * 执行文件夹路径识别操作
-     * @param {string} folderPath - 要识别的文件夹路径
-     * @param {string} algorithm - 使用的算法名称
-     * @returns {Promise<Object>} - 返回包含识别结果的对象
-     */
-    async function performFolderPathInference(folderPath, algorithm) {
-        // 检查必要参数是否存在
-        if (!folderPath || !algorithm) {
-            showNotificationCallback('请提供文件夹路径和算法后再进行识别。');
-            return { success: false, error: 'Missing folder path or algorithm' };
+    async function performMultiFrameInference(files, algorithm) {
+        if (!files || files.length === 0 || !algorithm) {
+            showNotificationCallback('请选择包含有效文件的文件夹和算法。');
+            return { success: false, error: 'Missing files or algorithm' };
         }
 
-        // 开始加载状态
         isLoading.value = true;
-        // 显示开始识别的通知
-        showNotificationCallback(`🚧 正在对文件夹路径 ${folderPath} 使用 ${algorithm} 进行识别...`);
+        uploadProgress.value = 0;
+        showNotificationCallback(`🚧 准备上传 ${files.length} 个文件...`);
+
+        const formData = new FormData();
+        files.forEach(file => {
+            formData.append('files', file);
+        });
+        formData.append('algorithm', algorithm);
 
         try {
-            // 发送POST请求到/infer_folder_path端点
-            const response = await axios.post('/infer_folder_path', {
-                folderPath: folderPath,
-                algorithm: algorithm,
+            // 【关键】调用新的后端接口 '/infer_multi_frame'
+            const response = await axios.post('/infer_multi_frame', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' },
+                onUploadProgress: (progressEvent) => {
+                    const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+                    uploadProgress.value = percentCompleted;
+                }
             });
 
-            // 处理成功响应
             if (response.data && response.data.success) {
-                showNotificationCallback(response.data.message || '✅ 文件夹识别任务已发送并处理成功！');
+                showNotificationCallback(response.data.message || '✅ 多帧识别任务处理成功！');
                 return { success: true, data: response.data };
             } else {
-                // 处理后端返回的错误
-                const errorMessage = response.data?.message || response.data?.error || '后端处理失败但未提供明确错误信息。';
-                showNotificationCallback(`❌ 文件夹识别失败: ${errorMessage}`);
+                const errorMessage = response.data?.message || '后端处理失败。';
+                showNotificationCallback(`❌ 多帧识别失败: ${errorMessage}`);
                 return { success: false, error: errorMessage };
             }
         } catch (error) {
-            // 处理错误
-            console.error('文件夹识别请求失败:', error);
-            let errorMessage = '❌ 文件夹识别请求失败，请检查网络或联系管理员。';
-            if (error.response?.data?.error) {
-                errorMessage = `❌ 识别失败: ${error.response.data.error}`;
-            } else if (error.message) {
-                errorMessage = `❌ 识别失败: ${error.message}`;
-            }
-            showNotificationCallback(errorMessage);
+            console.error('多帧识别请求失败:', error);
+            const errorMessage = error.response?.data?.message || error.message || '请求失败，请检查网络或联系管理员。';
+            showNotificationCallback(`❌ 多帧识别失败: ${errorMessage}`);
             return { success: false, error: errorMessage };
         } finally {
-            // 无论成功或失败，都结束加载状态
             isLoading.value = false;
         }
     }
 
     // 返回所有响应式变量和方法
     return {
-        isLoading,
-        resultImageUrl,
-        textResults,
+        isLoading: readonly(isLoading),
+        resultImageUrl: readonly(resultImageUrl),
+        textResults: readonly(textResults),
+        uploadProgress: readonly(uploadProgress),
         performInference,
-        performFolderPathInference,
+        performMultiFrameInference,
     };
 }

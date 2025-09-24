@@ -85,26 +85,6 @@
         <!-- 数据精度选择器，用于选择图像数据的数据类型 -->
       </el-col>
     </el-row>
-
-    <el-row :gutter="20" class="additional-inputs-row" v-if="props.isMultiFrameMode">
-      <!-- 第三行：仅在多帧模式下显示，用于输入手动识别的文件夹路径 -->
-      <el-col :span="18">
-        <el-input
-            :model-value="props.manualFolderPath"
-            @update:model-value="emit('update:manualFolderPath', $event)"
-            placeholder="请输入用于识别的文件夹绝对路径"
-            clearable
-            @keyup.enter="emit('confirmManualFolderPath')">
-          <template #prepend>识别路径</template>
-        </el-input>
-        <!-- 手动文件夹路径输入框，用于输入多帧识别的文件夹路径 -->
-      </el-col>
-      <el-col :span="6">
-        <el-button @click="emit('confirmManualFolderPath')" style="width: 100%;">确认目录</el-button>
-        <!-- 确认目录按钮，用于确认输入的文件夹路径 -->
-      </el-col>
-    </el-row>
-
     <IniConfigEditor
         :visible="props.isConfigEditorVisible"
         @update:visible="emit('update:isConfigEditorVisible', $event)"
@@ -131,7 +111,7 @@ const props = defineProps({
   imageRows: Number, // 图像的行数
   imageCols: Number, // 图像的列数
   selectedPrecision: String, // 选择的数据精度
-  manualFolderPath: String, // 手动输入的文件夹路径
+  //manualFolderPath: String, // 手动输入的文件夹路径
   isConfigEditorVisible: Boolean, // 配置编辑器是否可见
   currentConfig: Object, // 当前的配置数据
   onOpenConfigEditor: Function, // 打开配置编辑器的回调函数
@@ -148,8 +128,8 @@ const emit = defineEmits([
   'update:manualFolderPath', // 更新手动文件夹路径
   'infer', // 触发识别
   'customAction3', // 自定义操作3
-  'confirmManualFolderPath', // 确认手动文件夹路径
-  'update:isConfigEditorVisible' // 更新配置编辑器可见性
+  //'confirmManualFolderPath', // 确认手动文件夹路径
+  //'update:isConfigEditorVisible' // 更新配置编辑器可见性
 ]);
 </script>
 

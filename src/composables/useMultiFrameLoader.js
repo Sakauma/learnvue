@@ -131,12 +131,6 @@ export function useMultiFrameLoader(showNotificationCallback) {
             currentFrameImageUrl.value = newImageUrl;
             currentFrameMD5.value = newMD5;
 
-            // if (newImageUrl) {
-            //     console.log(`帧 ${fileToLoad.name} (索引 ${index}) 加载并处理成功。`);
-            // } else {
-            //     console.warn(`帧 ${fileToLoad.name} (索引 ${index}) 未能加载为可显示的图像格式。currentFrameImageUrl 已设为 null。`);
-            // }
-
         } catch (error) {
             console.error(`加载或处理帧 ${fileToLoad.name} (索引 ${index}) 时出错:`, error);
             showNotificationCallback(`❌ 加载帧 ${fileToLoad.name} 失败: ${error.message || String(error)}`);
@@ -236,6 +230,7 @@ export function useMultiFrameLoader(showNotificationCallback) {
     });
 
     return {
+        fileList,
         fileListNames: computed(() => fileList.value.map(f => f.name)), // 计算属性：所有文件名列表
         currentIndex,
         currentFrameImageUrl,

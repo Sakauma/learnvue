@@ -20,13 +20,11 @@
         v-model:imageRows="imageRows"
         v-model:imageCols="imageCols"
         v-model:selectedPrecision="selectedPrecision"
-        v-model:manualFolderPath="manualFolderPath"
         :is-loading="isLoading"
         :can-infer-in-current-mode="canInferInCurrentMode"
         :is-multi-frame-mode="isMultiFrameMode"
         @infer="handleInfer"
         @custom-action-3="handleCustomAction3"
-        @confirm-manual-folder-path="confirmManualFolderPath"
         v-model:isConfigEditorVisible="isConfigEditorVisible"
         :current-config="currentConfig"
         :on-open-config-editor="openConfigEditor"
@@ -71,6 +69,7 @@
             <MultiFrameSystem v-else class="viewer-content"
                               ref="multiFrameSystemRef"
                               :zoom-level="zoomLevel"
+                              :loader="multiFramePreviewLoader"
                               :image-rows="imageRows" :image-cols="imageCols"
                               :actual-result-frame-count="numberOfResultFrames"
                               v-model:currentResultFrameIndex="currentMultiFrameIndex"
@@ -135,6 +134,12 @@
                 :idx="currentMultiFrameIndex"
                 :data-mode="isMultiFrameMode && allFeaturesData && Object.keys(allFeaturesData).length > 0"
                 :data-value="allFeaturesData" />
+            <DataProductActions
+                v-if="isMultiFrameMode"
+                :can-perform-action="canGenerateFullProduct"
+                @download="downloadFullProduct"
+                @transmit="transmitFullProduct"
+            />
           </template>
           <!-- 报告区域 -->
           <template #report>
@@ -147,6 +152,10 @@
 
     <!-- 应用通知组件，显示通知状态 -->
     <AppNotification :notification-state="notifications.notificationState" />
+    <UploadProgressPopup
+        :visible="isLoading && isMultiFrameMode"
+        :progress="uploadProgress"
+    />
   </div>
 </template>
 
@@ -160,6 +169,7 @@ import { CloseBold } from '@element-plus/icons-vue';
 import ControlPanel from './layouts/ControlPanel.vue';
 import LeftColumn from './layouts/LeftColumn.vue';
 import RightColumn from './layouts/RightColumn.vue';
+import UploadProgressPopup from './utils/UploadProgressPopup.vue'; // <-- 新增这一行
 
 // 导入所有需要的 UI 子组件
 import SingleFrameSystem from './imgProcess/SingleFrameSystem.vue';
@@ -172,6 +182,8 @@ import AppNotification from './imgProcess/AppNotification.vue';
 import ResultData from './imgProcess/ResultData.vue';
 import BackendLogs from './imgProcess/BackendLogs.vue';
 import AlgorithmReport from './imgProcess/AlgorithmReport.vue';
+// 导入数据产品操作按钮组件
+import DataProductActions from './imgProcess/DataProductActions.vue';
 
 // 导入业务流程编排器
 import { useProcessOrchestrator } from '../composables/useProcessOrchestrator.js';
@@ -199,6 +211,13 @@ const {
   currentConfig,
   openConfigEditor,
   handleSaveConfig,
+
+  // 解构出新的数据产品内容
+  canGenerateFullProduct,
+  downloadFullProduct,
+  transmitFullProduct,
+
+  multiFramePreviewLoader,
 
   // 方法
   handleModeChange, handleInfer, receiveFileFromMainViewer, handleDeleteSingleFrameImage,

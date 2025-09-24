@@ -3,6 +3,7 @@ import vue from '@vitejs/plugin-vue'
 import AutoImport from 'unplugin-auto-import/vite'
 import Components from 'unplugin-vue-components/vite'
 import { ElementPlusResolver } from 'unplugin-vue-components/resolvers'
+//import * as process from "echarts";
 
 export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, process.cwd(), '');
@@ -18,7 +19,8 @@ export default defineConfig(({ mode }) => {
             // })
         ],
 
-        base: process.env.NODE_ENV === 'production' ? '/public/' : './',
+        //base: process.env.NODE_ENV === 'production' ? '/public/' : './',
+        base: "/",
 
         build: {
             outDir: 'dist',

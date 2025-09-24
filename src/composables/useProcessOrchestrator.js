@@ -10,6 +10,9 @@ import { useNotifications } from './useNotifications.js';
 import { useImageHandler } from './useImageHandler.js';
 import { useSseLogs } from './useSseLogs.js';
 import { useZoom } from "./useZoom.js";
+// --- 新增：导入数据产品处理器 ---
+import { useDataProduct } from './useDataProduct.js';
+import {useMultiFrameLoader} from "./useMultiFrameLoader.js";
 
 /**
  * @description 图像处理页面的业务流程编排器 (Orchestrator)。
@@ -52,12 +55,13 @@ export function useProcessOrchestrator(mainViewerRef, multiFrameSystemRef, dataC
         imageRows, // 图像行数
         imageCols, // 图像列数
         selectedPrecision, // 选择的图像精度
-        manualFolderPath, // 用户手动输入的文件夹路径
+        //manualFolderPath, // 用户手动输入的文件夹路径
         resultFolderPathFromApi, // 从后端API获取的结果文件夹路径
         resultFilesFromApi, // 从后端API获取的结果文件列表
         currentMultiFrameIndex, // 多帧模式下，当前查看的结果帧索引
         allFeaturesData, // 从后端获取的所有特征数据
         isLoading, // 全局加载状态，用于显示加载指示器
+        uploadProgress, // <-- 新增
         canInferInCurrentMode, // 计算属性，判断在当前模式下是否满足执行识别的条件
     } = storeToRefs(store);
 
@@ -82,6 +86,16 @@ export function useProcessOrchestrator(mainViewerRef, multiFrameSystemRef, dataC
         resultFilesFromApi,
         currentMultiFrameIndex
     );
+
+    // --- 新增：实例化数据产品处理器 ---
+    // 将 store 中的 allFeaturesData 和 currentMultiFrameIndex 作为响应式数据源传入
+    const {
+        canGenerateFullProduct,
+            downloadFullProduct,
+            transmitFullProduct,
+    } = useDataProduct(allFeaturesData);
+
+    const multiFramePreviewLoader = useMultiFrameLoader(notifications.showNotification);
 
     /**
      * @description 存储附加图像卡片的数组（例如裁剪后的图像、识别结果图）。
@@ -202,50 +216,21 @@ export function useProcessOrchestrator(mainViewerRef, multiFrameSystemRef, dataC
         notifications.showNotification('✅ 感兴趣区域已截取');
     };
 
-    /**
-     * @description 处理用户通过“路径提示”按钮选择文件夹后的事件。
-     * @param {Event} event - 文件输入框的 change 事件对象。
-     */
     const handleFolderSelectedViaDialog = (event) => {
-        const files = event.target.files;
-        if (!files || files.length === 0) return;
-        handleModeChange('multiFrame'); // 自动切换到多帧模式
-        let detectedPath = "";
-        // 从选择的第一个文件中提取其所在的目录路径
-        if (files[0].path) {
-            const firstFilePath = files[0].path;
-            const separator = firstFilePath.includes('/') ? '/' : '\\';
-            detectedPath = firstFilePath.substring(0, firstFilePath.lastIndexOf(separator));
-        }
-        // 如果成功提取，则填充到手动输入框作为提示
-        if (detectedPath) {
-            manualFolderPath.value = detectedPath;
-            notifications.showNotification(`路径提示已填充: ${detectedPath}。`, 3500);
-        }
-        // 调用 MultiFrameSystem 组件加载文件夹预览
-        if (multiFrameSystemRef.value) {
-            multiFrameSystemRef.value.loadFolder(files, selectedPrecision.value);
-        }
-        // 重置 input 的值，确保下次选择相同文件夹能再次触发 change 事件
-        if (event.target) event.target.value = '';
-    };
+            const files = event.target.files;
+            if (!files || files.length === 0) return;
+            handleModeChange('multiFrame');
+            // 使用独立的 loader 处理预览
+            multiFramePreviewLoader.processSelectedFiles(files, imageRows.value, imageCols.value, selectedPrecision.value);
+            if (event.target) event.target.value = '';
+        };
 
-    /**
-     * @description 确认使用手动输入的文件夹路径。
-     */
-    const confirmManualFolderPath = () => {
-        store.setOriginalFolderPath(manualFolderPath.value);
-    };
-
-    /**
-     * @description 清空多帧模式下的所有预览和结果。
-     */
     const handleClearAllMultiFrames = () => {
-        if (multiFrameSystemRef.value) {
-            multiFrameSystemRef.value.clearPreviewFrames(); // 清空组件的预览
-        }
-        store.resetMultiFrameData(); // 重置 store 的数据
-    };
+            multiFramePreviewLoader.clearFrames();
+            store.resetMultiFrameData();
+
+            notifications.showNotification('预览及结果已清空。');
+        };
 
     /**
      * @description 程序化地触发隐藏的文件夹输入框的点击事件。
@@ -350,14 +335,17 @@ export function useProcessOrchestrator(mainViewerRef, multiFrameSystemRef, dataC
      * @description 组件卸载时，断开 SSE 日志服务，防止内存泄漏。
      */
     onUnmounted(disconnect);
-    /**
-     * @description 侦听多帧模式下 "结果帧" 索引的变化。
-     * 当用户在结果导航条上切换时，此侦听器会触发，
-     * 调用 MultiFrameSystem 组件的方法，同步更新上方预览区的 "原始帧"。
-     * @param {number} newIndex - 新的帧索引。
-     */
+
+    watch(multiFramePreviewLoader.fileList, (newFiles) => {
+        if (newFiles && newFiles.length > 0) {
+            store.setMultiFrameFiles(newFiles);
+        }
+    }, { deep: true });
+
     watch(currentMultiFrameIndex, (newIndex) => {
         if (isMultiFrameMode.value && multiFrameSystemRef.value && newIndex >= 0) {
+            // 【关键】调用 multiFrameSystemRef 的方法来同步预览帧
+            // 注意：multiFrameSystemRef 上的这个方法也需要修改
             multiFrameSystemRef.value.syncPreviewFrame(newIndex);
         }
     });
@@ -372,7 +360,6 @@ export function useProcessOrchestrator(mainViewerRef, multiFrameSystemRef, dataC
         imageRows,
         imageCols,
         selectedPrecision,
-        manualFolderPath,
         currentMultiFrameIndex,
         allFeaturesData,
         isLoading,
@@ -390,6 +377,13 @@ export function useProcessOrchestrator(mainViewerRef, multiFrameSystemRef, dataC
         multiFrameRoiImage,
         isConfigEditorVisible,
         currentConfig,
+        multiFramePreviewLoader,
+        uploadProgress, // <-- 新增
+
+        // 暴露数据产品相关的状态和方法
+        canGenerateFullProduct,
+        downloadFullProduct,
+        transmitFullProduct,
 
         // 方法
         handleModeChange,
@@ -398,7 +392,6 @@ export function useProcessOrchestrator(mainViewerRef, multiFrameSystemRef, dataC
         handleDeleteSingleFrameImage,
         onSingleFrameCropConfirmed,
         handleFolderSelectedViaDialog,
-        confirmManualFolderPath,
         handleClearAllMultiFrames,
         triggerFolderDialogForPathHint,
         logOut,

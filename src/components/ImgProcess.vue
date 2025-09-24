@@ -218,6 +218,7 @@ const {
   transmitFullProduct,
 
   multiFramePreviewLoader,
+  uploadProgress,
 
   // 方法
   handleModeChange, handleInfer, receiveFileFromMainViewer, handleDeleteSingleFrameImage,

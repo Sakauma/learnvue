@@ -336,9 +336,24 @@ export function useProcessOrchestrator(mainViewerRef, multiFrameSystemRef, dataC
      */
     onUnmounted(disconnect);
 
-    watch(multiFramePreviewLoader.fileList, (newFiles) => {
-        if (newFiles && newFiles.length > 0) {
-            store.setMultiFrameFiles(newFiles);
+    // watch(multiFramePreviewLoader.fileList, (newFiles) => {
+    //     if (newFiles && newFiles.length > 0) {
+    //         store.setMultiFrameFiles(newFiles);
+    //     }
+    // }, { deep: true });
+
+    watch(multiFramePreviewLoader.fileList, (newFrameList) => {
+        if (newFrameList && newFrameList.length > 0) {
+            // 关键：我们需要的是去重后的原始文件列表，以发送给后端
+            // 使用 Map 来确保每个原始文件只被添加一次，同时保持原始的自然排序
+            const uniqueOriginalFiles = [...new Map(newFrameList.map(item =>
+                [item.originalFile.name, item.originalFile]
+            )).values()];
+
+            store.setMultiFrameFiles(uniqueOriginalFiles);
+        } else {
+            // 如果预览列表为空，也清空待上传文件列表
+            store.setMultiFrameFiles([]);
         }
     }, { deep: true });
 

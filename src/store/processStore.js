@@ -32,9 +32,9 @@ export const useProcessStore = defineStore('process', {
         /** @type {string} 选择的具体算法名称 */
         selectedSpecificAlgorithm: '',
         /** @type {number} 图像的行数，用于.dat文件解析和后端处理 */
-        imageRows: 240,
+        imageRows: 512,
         /** @type {number} 图像的列数，用于.dat文件解析和后端处理 */
-        imageCols: 320,
+        imageCols: 512,
         /** @type {string} 选择的图像数据精度 (例如 'float64') */
         selectedPrecision: 'float64',
         // /** @type {string} 用户在UI中手动输入的文件夹路径（多帧模式） */

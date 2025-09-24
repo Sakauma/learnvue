@@ -1,6 +1,6 @@
 import { ref, computed, onUnmounted } from 'vue';
 import SparkMD5 from 'spark-md5';
-import { parseDatFileWithWorker } from './useDatParser.js';
+import DatParserWorker from '../workers/datParser.worker.js?worker';
 
 /**
  * 异步生成文件的MD5哈希值
@@ -33,209 +33,232 @@ async function generateMD5ForFile(file) {
     });
 }
 
-/**
- * 多帧加载器功能模块
- * @param {Function} showNotificationCallback - 用于显示通知的回调函数
- * @returns {Object} - 返回包含多帧加载器相关状态和方法的响应式对象
- */
+function getDatFrameCount(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const worker = new DatParserWorker();
+            worker.onmessage = (event) => {
+                if (event.data.success && event.data.mode === 'getCount') {
+                    resolve(event.data.frameCount);
+                } else {
+                    reject(new Error(event.data.error || '无法从Worker获取帧数'));
+                }
+                worker.terminate();
+            };
+            worker.onerror = (err) => {
+                reject(err);
+                worker.terminate();
+            };
+            const buffer = e.target.result;
+            worker.postMessage({ datBuffer: buffer, mode: 'getCount' }, [buffer]);
+        };
+        reader.onerror = reject;
+        reader.readAsArrayBuffer(file);
+    });
+}
+
+function parseDatSpecificFrame(file, frameIndex, rows, cols) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const worker = new DatParserWorker();
+            worker.onmessage = (event) => {
+                if (event.data.success && event.data.mode === 'getSpecificFrame') {
+                    resolve(URL.createObjectURL(event.data.imageBlob));
+                } else {
+                    reject(new Error(event.data.error || 'Worker未能解析指定帧'));
+                }
+                worker.terminate();
+            };
+            worker.onerror = (err) => {
+                reject(err);
+                worker.terminate();
+            };
+            const buffer = e.target.result;
+            worker.postMessage({
+                datBuffer: buffer,
+                rows,
+                cols,
+                mode: 'getSpecificFrame',
+                frameIndex
+            }, [buffer]);
+        };
+        reader.onerror = reject;
+        reader.readAsArrayBuffer(file);
+    });
+}
+
 export function useMultiFrameLoader(showNotificationCallback) {
-    // 响应式状态变量
-    const fileList = ref([]); // 存储所有文件的列表
-    const currentIndex = ref(-1); // 当前显示的帧索引
-    const currentFrameImageUrl = ref(null); // 当前帧的图像URL
-    const currentFrameFileInternal = ref(null); // 当前帧的文件对象
-    const currentFrameMD5 = ref(''); // 当前帧的MD5哈希值
-    const isLoadingFrame = ref(false); // 是否正在加载帧的标志
+    const fileList = ref([]);
+    const currentIndex = ref(-1);
+    const currentFrameImageUrl = ref(null);
+    const isLoadingFrame = ref(false);
+    const currentImageRows = ref(0);
+    const currentImageCols = ref(0);
+    const totalFrames = computed(() => fileList.value.length);
+    const fileListNames = computed(() => fileList.value.map(f => f.displayName));
 
-    // 图像参数
-    const currentImageRows = ref(0); // 图像的行数
-    const currentImageCols = ref(0); // 图像的列数
-    const currentPrecision = ref('float64'); // 图像的精度（如float32, float64）
-
-    // 计算属性
-    const totalFrames = computed(() => fileList.value.length); // 总帧数
-    const currentFrameFile = computed(() => currentFrameFileInternal.value); // 当前帧的文件对象（计算属性）
-
-    /**
-     * 清理之前帧的URL对象
-     */
     function cleanupPreviousFrameUrl() {
         if (currentFrameImageUrl.value && currentFrameImageUrl.value.startsWith('blob:')) {
-            URL.revokeObjectURL(currentFrameImageUrl.value); // 释放Blob URL以避免内存泄漏
+            URL.revokeObjectURL(currentFrameImageUrl.value);
         }
         currentFrameImageUrl.value = null;
     }
 
-    /**
-     * 加载指定索引的帧
-     * @param {number} index - 要加载的帧的索引
-     * @returns {Promise<File|null>} - 返回加载的文件对象或null
-     */
     async function loadFrame(index) {
         if (index < 0 || index >= fileList.value.length) {
             cleanupPreviousFrameUrl();
-            currentFrameFileInternal.value = null;
-            currentFrameMD5.value = '';
             currentIndex.value = -1;
-            return null;
+            return;
         }
 
-        if (isLoadingFrame.value) {
-            return currentFrameFileInternal.value; // 如果正在加载，返回当前帧
-        }
-
+        if (isLoadingFrame.value) return;
         isLoadingFrame.value = true;
-        const fileToLoad = fileList.value[index];
-        currentIndex.value = index;
-        currentFrameFileInternal.value = fileToLoad;
-        currentFrameMD5.value = '';
 
-        if (!fileToLoad) {
-            showNotificationCallback(`⚠️ 无法加载索引为 ${index} 的帧，文件对象在列表中不存在。`);
-            cleanupPreviousFrameUrl();
-            currentFrameFileInternal.value = null;
-            isLoadingFrame.value = false;
-            return null;
-        }
+        const frameInfo = fileList.value[index];
+        currentIndex.value = index;
 
         let newImageUrl = null;
-        let newMD5 = '';
 
         try {
-            if (fileToLoad.name.toLowerCase().endsWith('.dat')) {
-                if (currentImageRows.value <= 0 || currentImageCols.value <= 0) {
-                    showNotificationCallback(`❌ 解析.dat (${fileToLoad.name}) 失败: 请提供有效的图像行数和列数。`);
-                    newImageUrl = null;
-                } else {
-                    const arrayBuffer = await fileToLoad.arrayBuffer();
-                    if (arrayBuffer && arrayBuffer.byteLength > 0) {
-                        newImageUrl = await parseDatFileWithWorker(arrayBuffer, currentImageRows.value, currentImageCols.value, currentPrecision.value);
-                        if (!newImageUrl) {
-                            showNotificationCallback(`❌ 无法解析 .dat 文件: ${fileToLoad.name}`);
-                        }
-                    } else {
-                        showNotificationCallback(`❌ 读取 .dat 文件内容为空: ${fileToLoad.name}`);
-                    }
-                }
-            } else if (fileToLoad.type.startsWith('image/')) {
-                newImageUrl = URL.createObjectURL(fileToLoad); // 创建Blob URL用于显示图像
+            console.log(`[loader] 开始加载帧: ${frameInfo.displayName}`);
+            if (frameInfo.isSubFrame) {
+                newImageUrl = await parseDatSpecificFrame(
+                    frameInfo.originalFile,
+                    frameInfo.subFrameIndex,
+                    currentImageRows.value,
+                    currentImageCols.value
+                );
+            } else if (frameInfo.originalFile.type.startsWith('image/')) {
+                newImageUrl = URL.createObjectURL(frameInfo.originalFile);
             } else {
-                showNotificationCallback(`⚠️ 不支持的文件类型: ${fileToLoad.name}`);
-            }
-
-            if (newImageUrl) {
-                newMD5 = await generateMD5ForFile(fileToLoad); // 计算文件的MD5哈希值
+                showNotificationCallback(`⚠️ 不支持的文件类型: ${frameInfo.displayName}`);
             }
 
             cleanupPreviousFrameUrl();
             currentFrameImageUrl.value = newImageUrl;
-            currentFrameMD5.value = newMD5;
+            console.log(`[loader] 成功加载帧: ${frameInfo.displayName}`);
 
         } catch (error) {
-            console.error(`加载或处理帧 ${fileToLoad.name} (索引 ${index}) 时出错:`, error);
-            showNotificationCallback(`❌ 加载帧 ${fileToLoad.name} 失败: ${error.message || String(error)}`);
+            const errorMessage = `❌ 加载帧 ${frameInfo.displayName} 失败: ${error.message}`;
+            console.error(errorMessage, error);
+            showNotificationCallback(errorMessage);
             cleanupPreviousFrameUrl();
-            currentFrameImageUrl.value = null;
-            currentFrameMD5.value = '';
         } finally {
             isLoadingFrame.value = false;
         }
-        return currentFrameFileInternal.value;
     }
 
-    /**
-     * 处理选择的文件列表
-     * @param {FileList} htmlFileList - HTML文件列表对象
-     * @param {number} rows - 图像的行数
-     * @param {number} cols - 图像的列数
-     * @param {string} precision - 图像的精度（如float32, float64）
-     */
-    async function processSelectedFiles(htmlFileList, rows, cols, precision) {
+    async function processSelectedFiles(htmlFileList, rows, cols) {
         if (isLoadingFrame.value) {
-            showNotificationCallback("⚠️ 正在加载其他帧，请稍后再选择文件夹。");
+            showNotificationCallback("⚠️ 正在加载，请稍后再选择文件夹。");
             return;
         }
         clearFrames();
+        console.log('[loader] 开始处理选择的文件...');
 
-        if (typeof rows !== 'number' || typeof cols !== 'number' || rows <= 0 || cols <= 0) {
-            showNotificationCallback(`❌ 处理文件列表失败: 请提供有效的图像行数(rows)和列数(cols)。`);
+        if (rows <= 0 || cols <= 0) {
+            showNotificationCallback(`❌ 请提供有效的图像行数和列数。`);
             return;
         }
         currentImageRows.value = rows;
         currentImageCols.value = cols;
-        currentPrecision.value = precision;
 
-        const acceptedFiles = [];
-        const imageExtensions = ['.jpg', '.jpeg', '.png', '.bmp', '.gif', '.dat', '.tif', '.tiff'];
-        for (let i = 0; i < htmlFileList.length; i++) {
-            const file = htmlFileList[i];
+        const sortedFiles = Array.from(htmlFileList).sort((a, b) =>
+            a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' })
+        );
+        console.log('[loader] 文件已按自然顺序排序:', sortedFiles.map(f => f.name));
+
+        const supportedImageExtensions = ['.jpg', '.jpeg', '.png', '.bmp', '.gif', '.tif', '.tiff'];
+
+        const processingPromises = sortedFiles.map(file => {
             const fileNameLower = file.name.toLowerCase();
-            if (imageExtensions.some(ext => fileNameLower.endsWith(ext)) || file.type.startsWith('image/')) {
-                acceptedFiles.push(file);
+            if (supportedImageExtensions.some(ext => fileNameLower.endsWith(ext))) {
+                console.log(`[loader] 发现标准图片: ${file.name}`);
+                // 对于标准图片，直接返回一个解析过的Promise
+                return Promise.resolve([{
+                    displayName: file.name,
+                    originalFile: file,
+                    isSubFrame: false,
+                }]);
+            } else if (fileNameLower.endsWith('.dat')) {
+                console.log(`[loader] 发现.dat文件，开始解析帧数: ${file.name}`);
+                // 对于.dat文件，返回一个异步解析其所有子帧信息的Promise
+                return getDatFrameCount(file).then(frameCount => {
+                    console.log(`[loader] 解析成功: ${file.name} 包含 ${frameCount} 帧。`);
+                    const subFrames = [];
+                    for (let i = 0; i < frameCount; i++) {
+                        subFrames.push({
+                            displayName: `${file.name}_${String(i).padStart(3, '0')}.png`,
+                            originalFile: file,
+                            isSubFrame: true,
+                            subFrameIndex: i,
+                        });
+                    }
+                    return subFrames;
+                }).catch(error => {
+                    const errorMessage = `❌ 解析 ${file.name} 文件头失败: ${error.message}`;
+                    console.error(errorMessage);
+                    showNotificationCallback(errorMessage);
+                    return []; // 出错时返回空数组，不中断整个流程
+                });
             }
-        }
+            return Promise.resolve([]); // 不支持的文件类型
+        });
 
-        if (acceptedFiles.length === 0) {
-            showNotificationCallback('⚠️ 选择的文件夹中没有找到支持的图像文件。');
-            return;
-        }
-
-        acceptedFiles.sort((a, b) => a.name.localeCompare(b.name, undefined, {numeric: true, sensitivity: 'base'})); // 按文件名排序
-        fileList.value = acceptedFiles;
         try {
-            await loadFrame(0); // 尝试加载第一帧
-        } catch (e) {
-            console.error("processSelectedFiles 中调用 loadFrame(0) 第一次尝试出错:", e);
-            if (isLoadingFrame.value) {
-                isLoadingFrame.value = false;
+            // 等待所有文件的处理Promise完成
+            const nestedResults = await Promise.all(processingPromises);
+            // 将嵌套的结果数组扁平化成一个列表
+            const expandedList = nestedResults.flat();
+            //console.log('[loader] 所有文件处理完成，生成扁平化预览列表:', expandedList);
+
+            if (expandedList.length === 0) {
+                showNotificationCallback('⚠️ 未找到支持的图像文件。');
+                return;
             }
+
+            fileList.value = expandedList;
+            showNotificationCallback(`✅ 已加载 ${expandedList.length} 帧图像。`);
+
+            if (fileList.value.length > 0) {
+                await loadFrame(0);
+            }
+        } catch (error) {
+            console.error('[loader] 处理文件列表时发生严重错误:', error);
+            showNotificationCallback('❌ 处理文件时发生未知错误，请检查控制台。');
         }
     }
 
-    /**
-     * 加载下一帧
-     */
     function nextFrame() {
         if (!isLoadingFrame.value && totalFrames.value > 0 && currentIndex.value < totalFrames.value - 1) {
             loadFrame(currentIndex.value + 1);
         }
     }
 
-    /**
-     * 加载上一帧
-     */
     function prevFrame() {
         if (!isLoadingFrame.value && totalFrames.value > 0 && currentIndex.value > 0) {
             loadFrame(currentIndex.value - 1);
         }
     }
 
-    /**
-     * 清除所有帧
-     */
     function clearFrames() {
         cleanupPreviousFrameUrl();
         fileList.value = [];
         currentIndex.value = -1;
-        currentFrameFileInternal.value = null;
-        currentFrameMD5.value = '';
         isLoadingFrame.value = false;
         currentImageRows.value = 0;
         currentImageCols.value = 0;
     }
 
-    // 组件卸载时清理资源
-    onUnmounted(() => {
-        cleanupPreviousFrameUrl();
-    });
+    onUnmounted(cleanupPreviousFrameUrl);
 
     return {
         fileList,
-        fileListNames: computed(() => fileList.value.map(f => f.name)), // 计算属性：所有文件名列表
+        fileListNames,
         currentIndex,
         currentFrameImageUrl,
-        currentFrameFile,
-        currentFrameMD5,
         totalFrames,
         isLoadingFrame,
         processSelectedFiles,

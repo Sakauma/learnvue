@@ -72,7 +72,7 @@ defineProps({
   left: 0;
   width: 100%;
   box-sizing: border-box;
-  background-color: rgba(0, 0, 0, 0.6);
+  background-color: transparent;
   color: white;
   padding: 5px;
   text-align: center;
@@ -80,6 +80,7 @@ defineProps({
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
 }
 
 .image-slot-placeholder {

@@ -110,6 +110,32 @@ export function useProcessOrchestrator(mainViewerRef, multiFrameSystemRef, dataC
      */
     const isCroppingActive = ref(false);
 
+    // 控制参数设置弹窗的可见性
+    const isSettingsDialogVisible = ref(false);
+
+    const isVersionDialogVisible = ref(false);
+
+    // 用于传递给弹窗的组合设置对象
+    const parameterSettings = computed(() => ({
+        selectedMode: selectedMode.value,
+        algorithmType: selectedAlgorithmType.value,
+        specificAlgorithm: selectedSpecificAlgorithm.value,
+        imageRows: imageRows.value,
+        imageCols: imageCols.value,
+        selectedPrecision: selectedPrecision.value,
+    }));
+
+    // 保存设置的回调函数
+    const handleSaveSettings = (newSettings) => {
+        store.setMode(newSettings.selectedMode);
+        store.selectedAlgorithmType = newSettings.algorithmType;
+        store.selectedSpecificAlgorithm = newSettings.specificAlgorithm;
+        store.imageRows = newSettings.imageRows;
+        store.imageCols = newSettings.imageCols;
+        store.selectedPrecision = newSettings.selectedPrecision;
+        notifications.showNotification('✅ 参数已保存');
+    };
+
     // --- 3. 计算属性 (Computed Properties) ---
     /**
      * @description 计算多帧模式下结果的总帧数。
@@ -128,6 +154,9 @@ export function useProcessOrchestrator(mainViewerRef, multiFrameSystemRef, dataC
         additionalImages.value = []; // 清空旧模式下的结果图像
     };
 
+    // 创建一个 ref 来持有 AbortController 实例
+    const activeRequestController = ref(null);
+
     /**
      * @description 执行核心的识别（推断）操作。
      * 会根据当前模式（单帧/多帧）调用 store 中对应的 action。
@@ -138,12 +167,15 @@ export function useProcessOrchestrator(mainViewerRef, multiFrameSystemRef, dataC
             return;
         }
 
+        // 在发起请求前，创建一个新的 AbortController
+        activeRequestController.value = new AbortController();
+
         if (isMultiFrameMode.value) {
-            await store.inferMultiFrame();
+            await store.inferMultiFrame(activeRequestController.value.signal);
             // 注意：多帧模式的结果展示不通过 additionalImages，而是由 MultiFrameSystem 内部处理
         } else {
             // 等待 store action 返回结果，并直接更新 additionalImages
-            const result = await store.inferSingleFrame();
+            const result =  await store.inferSingleFrame(activeRequestController.value.signal);
             if (result && result.success && result.resultImage) {
                 additionalImages.value.push({
                     id: `result-${Date.now()}`,
@@ -151,6 +183,17 @@ export function useProcessOrchestrator(mainViewerRef, multiFrameSystemRef, dataC
                     label: '结果图像'
                 });
             }
+        }
+        // 请求完成后，清空 controller
+        activeRequestController.value = null;
+    };
+
+    // 处理键盘事件的函数
+    const handleKeyDown = (event) => {
+        if (event.key === 'Escape' && isLoading.value && activeRequestController.value) {
+            console.log('ESC pressed, cancelling request...');
+            activeRequestController.value.abort(); // 中断请求
+            store.isLoading = false; // 手动重置加载状态
         }
     };
 
@@ -330,11 +373,19 @@ export function useProcessOrchestrator(mainViewerRef, multiFrameSystemRef, dataC
     /**
      * @description 组件挂载时，自动连接 SSE 日志服务。
      */
-    onMounted(connect);
+    onMounted(() => {
+        connect(); // 原有的 connect()
+        // 挂载时添加全局键盘事件监听器
+        window.addEventListener('keydown', handleKeyDown);
+    });
     /**
      * @description 组件卸载时，断开 SSE 日志服务，防止内存泄漏。
      */
-    onUnmounted(disconnect);
+    onUnmounted(() => {
+        disconnect(); // 原有的 disconnect()
+        // 卸载时移除监听器，防止内存泄漏
+        window.removeEventListener('keydown', handleKeyDown);
+    });
 
     // watch(multiFramePreviewLoader.fileList, (newFiles) => {
     //     if (newFiles && newFiles.length > 0) {
@@ -394,6 +445,10 @@ export function useProcessOrchestrator(mainViewerRef, multiFrameSystemRef, dataC
         currentConfig,
         multiFramePreviewLoader,
         uploadProgress, // <-- 新增
+        isSettingsDialogVisible,    // 【新增】
+        isVersionDialogVisible,
+        parameterSettings,          // 【新增】
+        handleSaveSettings,         // 【新增】
 
         // 暴露数据产品相关的状态和方法
         canGenerateFullProduct,

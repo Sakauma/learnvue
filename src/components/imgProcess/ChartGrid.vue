@@ -1,8 +1,6 @@
 /*ChartGrid.vue*/
 <template>
-  <!-- 容器用于显示图表组件 -->
   <div class="chart-container">
-    <!-- 循环渲染SelectableChart组件，每个组件对应一个配置 -->
     <SelectableChart
         v-for="(config, index) in chartConfigs"
         :key="index"
@@ -33,17 +31,17 @@ const chartRefs = ref([]);
 // 从配置文件中导入图表选项定义
 const featureOptions = FEATURE_DEFINITIONS;
 
-// 初始化图表配置，默认显示前4个图表
-const chartConfigs = ref(FEATURE_DEFINITIONS.slice(0, 4));
+// 【已修改】初始化图表配置，现在默认显示全部12个特征图表
+const chartConfigs = ref(FEATURE_DEFINITIONS);
 </script>
-
 
 <style scoped>
 .chart-container {
   width: 100%;
   height: 100%;
   display: grid;
-  grid-template-rows: 1fr 1fr 1fr 1fr;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(4, 1fr);
   gap: 10px;
   background-color: rgb(27, 40, 56);
 }

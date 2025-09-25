@@ -1,61 +1,30 @@
 /*ImgProcess.vue*/
 <template>
-  <!-- 主容器，包含整个应用的布局 -->
   <div id="back-block">
-    <!-- 退出登录背景区域 -->
     <div id="log-out-bgd">
-      <!-- 退出按钮，点击时调用 logOut 方法，图标为 CloseBold，类名为 custom-close-button，鼠标悬停时显示“关闭软件”提示 -->
       <el-button id="log-out" @click="logOut" :icon="CloseBold" class="custom-close-button" title="关闭软件"></el-button>
     </div>
-    <!-- 标志区域 -->
     <div id="pst">
-      <!-- 显示软件名称“XJYTXFX 软件” -->
       <p id="logo">XJYTXFX 软件</p>
     </div>
-    <!-- 控制面板组件，绑定多个数据和方法 -->
     <ControlPanel
-        v-model:selectedMode="selectedMode"
-        v-model:algorithmType="selectedAlgorithmType"
-        v-model:specificAlgorithm="selectedSpecificAlgorithm"
-        v-model:imageRows="imageRows"
-        v-model:imageCols="imageCols"
-        v-model:selectedPrecision="selectedPrecision"
         :is-loading="isLoading"
         :can-infer-in-current-mode="canInferInCurrentMode"
         :is-multi-frame-mode="isMultiFrameMode"
         @infer="handleInfer"
+        @open-settings="isSettingsDialogVisible = true"
         @custom-action-3="handleCustomAction3"
-        v-model:isConfigEditorVisible="isConfigEditorVisible"
-        :current-config="currentConfig"
-        :on-open-config-editor="openConfigEditor"
-        :on-save-config="handleSaveConfig"
+        @open-config-editor="openConfigEditor"
     />
-    <!-- 文件选择输入框，隐藏，用于选择文件夹 -->
     <input type="file" ref="folderInputRef" style="display: none" webkitdirectory directory multiple @change="handleFolderSelectedViaDialog"/>
 
-    <!-- 主内容行，包含左右两列 -->
-    <el-row :gutter="20" class="main-content-row">
-      <!-- 左列，占12格 -->
-      <el-col :span="12">
-        <!-- 左侧列组件 -->
-        <LeftColumn>
-          <!-- 观察器区域 -->
-          <template #viewer>
-            <!-- 如果不是多帧模式，显示单帧系统 -->
+    <div class="main-content-wrapper">
+
+      <div class="content-section image-section">
+        <div class="viewer-wrapper">
+          <div class="image-display-box" :class="{ 'split-view': hasResults }">
             <div v-if="!isMultiFrameMode" class="main-viewer-area">
-              <!-- 单帧系统组件，包含裁剪、删除、缩放等功能 -->
-              <SingleFrameSystem
-                  class="viewer-controls"
-                  :is-cropping="isCroppingActive"
-                  :can-delete="!!singleFrameImageHandler.originalFile.value"
-                  :can-crop="!!singleFrameImageHandler.originalFile.value"
-                  :file-name="singleFrameImageHandler.imageName.value"
-                  @file-selected="receiveFileFromMainViewer"
-                  @delete-image="handleDeleteSingleFrameImage"
-                  @zoom-in="zoomIn" @zoom-out="zoomOut"
-                  @toggle-crop="toggleCropping" @confirm-crop="handleConfirmCrop"
-              />
-              <!-- 主图像观察器组件，显示图像，支持缩放和裁剪 -->
+              <SingleFrameSystem class="viewer-controls" :is-cropping="isCroppingActive" :can-delete="!!singleFrameImageHandler.originalFile.value" :can-crop="!!singleFrameImageHandler.originalFile.value" :file-name="singleFrameImageHandler.imageName.value" @file-selected="receiveFileFromMainViewer" @delete-image="handleDeleteSingleFrameImage" @zoom-in="zoomIn" @zoom-out="zoomOut" @toggle-crop="toggleCropping" @confirm-crop="handleConfirmCrop" />
               <MainImageViewer
                   ref="mainViewerRef"
                   class="viewer-content"
@@ -63,113 +32,76 @@
                   :zoom-level="zoomLevel"
                   :is-cropping-active="isCroppingActive"
                   @crop-confirmed="onSingleFrameCropConfirmed"
+                  @zoom-in="zoomIn"
+                  @zoom-out="zoomOut"
               />
             </div>
-            <!-- 如果是多帧模式，显示多帧系统 -->
-            <MultiFrameSystem v-else class="viewer-content"
-                              ref="multiFrameSystemRef"
-                              :zoom-level="zoomLevel"
-                              :loader="multiFramePreviewLoader"
-                              :image-rows="imageRows" :image-cols="imageCols"
-                              :actual-result-frame-count="numberOfResultFrames"
-                              v-model:currentResultFrameIndex="currentMultiFrameIndex"
-                              @request-folder-select="triggerFolderDialogForPathHint"
-                              @zoom-in="zoomIn" @zoom-out="zoomOut"
-                              @delete-all-frames="handleClearAllMultiFrames"
-            />
-          </template>
-          <!-- 缩放区域 -->
-          <template #zoom>
-            <!-- 图像缩放滑块组件 -->
-            <ImageZoomSlider v-model="zoomLevel" />
-          </template>
-          <!-- 结果区域 -->
-          <template #results>
-            <!-- 如果是多帧模式，显示多帧结果 -->
-            <template v-if="isMultiFrameMode">
-              <!-- 显示感兴趣区域图像 -->
-              <ImageViewerCard :image-url="multiFrameRoiImage" label="感兴趣区域图像" class="additional-viewer-card" />
-              <!-- 显示结果图像 -->
-              <ImageViewerCard :image-url="multiFrameResultImage" label="结果图像" class="additional-viewer-card" />
-              <!-- 如果没有结果图像，显示占位符 -->
-              <div v-if="!multiFrameResultImage && !multiFrameRoiImage" class="no-results-placeholder">
-              </div>
-            </template>
-            <!-- 如果不是多帧模式，显示单帧结果 -->
-            <template v-else>
-              <!-- 循环显示附加图像 -->
-              <ImageViewerCard v-for="image in additionalImages" :key="image.id" class="additional-viewer-card" :image-url="image.url" :label="image.label" />
-              <!-- 如果没有附加图像，显示占位符 -->
-              <div v-if="additionalImages.length === 0" class="no-results-placeholder">
-                <span>暂无结果图像</span>
-              </div>
-            </template>
-          </template>
-          <!-- 日志区域 -->
-          <template #logs>
-            <!-- 后端日志组件，显示日志、连接状态等信息 -->
-            <BackendLogs
-                :logs="parsedLogs"
-                :connectionStatus="connectionStatus"
-                :connectionAttempts="connectionAttempts"
-                @toggle-connection="toggleSseConnection"
-                @clear-logs="clearAllLogsAndReports" />
-          </template>
-        </LeftColumn>
-      </el-col>
+            <MultiFrameSystem v-else class="viewer-content" ref="multiFrameSystemRef" :zoom-level="zoomLevel" :loader="multiFramePreviewLoader" :image-rows="imageRows" :image-cols="imageCols" :actual-result-frame-count="numberOfResultFrames" v-model:currentResultFrameIndex="currentMultiFrameIndex" @request-folder-select="triggerFolderDialogForPathHint" @zoom-in="zoomIn" @zoom-out="zoomOut" @delete-all-frames="handleClearAllMultiFrames" />
+          </div>
+          <div v-if="hasResults" class="image-display-box split-view">
+            <ImageViewerCard v-if="isMultiFrameMode" :image-url="multiFrameResultImage" label="结果图像" class="additional-viewer-card" />
+            <ImageViewerCard v-else-if="mainResultImage" :image-url="mainResultImage.url" :label="mainResultImage.label" class="additional-viewer-card" />
+          </div>
+        </div>
+        <div class="zoom-slider-layout" :class="{ 'split-view': hasResults }">
+          <ImageZoomSlider v-model="zoomLevel" />
+        </div>
+      </div>
 
-      <!-- 右列，占12格 -->
-      <el-col :span="12">
-        <!-- 右侧列组件 -->
-        <RightColumn>
-          <!-- 图表区域 -->
-          <template #charts>
-            <!-- 图表网格组件，显示特征数据 -->
-            <ChartGrid :feature-data="allFeaturesData" />
-          </template>
-          <!-- 数据区域 -->
-          <template #data>
-            <!-- 结果数据组件，显示数据 -->
-            <ResultData
-                :idx="currentMultiFrameIndex"
-                :data-mode="isMultiFrameMode && allFeaturesData && Object.keys(allFeaturesData).length > 0"
-                :data-value="allFeaturesData" />
-            <DataProductActions
-                v-if="isMultiFrameMode"
-                :can-perform-action="canGenerateFullProduct"
-                @download="downloadFullProduct"
-                @transmit="transmitFullProduct"
-            />
-          </template>
-          <!-- 报告区域 -->
-          <template #report>
-            <!-- 算法报告组件，显示日志 -->
-            <AlgorithmReport :logs="parsedLogs" ref="dataColumnRef" />
-          </template>
-        </RightColumn>
-      </el-col>
-    </el-row>
+      <div class="content-section chart-section">
+        <ChartGrid :feature-data="allFeaturesData" />
+      </div>
 
-    <!-- 应用通知组件，显示通知状态 -->
-    <AppNotification :notification-state="notifications.notificationState" />
-    <UploadProgressPopup
-        :visible="isLoading && isMultiFrameMode"
-        :progress="uploadProgress"
+      <div class="content-section data-section">
+        <ResultData :idx="currentMultiFrameIndex" :data-mode="isMultiFrameMode && allFeaturesData && Object.keys(allFeaturesData).length > 0" :data-value="allFeaturesData" />
+        <DataProductActions v-if="isMultiFrameMode" :can-perform-action="canGenerateFullProduct" @download="downloadFullProduct" @transmit="transmitFullProduct" />
+      </div>
+
+      <div class="content-section logs-and-report-section">
+        <div class="log-wrapper">
+          <BackendLogs :logs="parsedLogs" :connectionStatus="connectionStatus" :connectionAttempts="connectionAttempts" @toggle-connection="toggleSseConnection" @clear-logs="clearAllLogsAndReports" />
+        </div>
+        <div class="report-wrapper">
+          <AlgorithmReport :logs="parsedLogs" ref="dataColumnRef" />
+        </div>
+      </div>
+
+    </div>
+
+    <ParameterSettingsDialog
+        v-model:visible="isSettingsDialogVisible"
+        :settings="parameterSettings"
+        @save="handleSaveSettings"
     />
+
+    <IniConfigEditor
+        :visible="isConfigEditorVisible"
+        @update:visible="isConfigEditorVisible = $event"
+        :initial-data="currentConfig"
+        @save="handleSaveConfig"
+    />
+
+    <div id="version-info-bgd">
+      <el-button @click="isVersionDialogVisible = true" :icon="Setting" class="custom-corner-button" title="关于软件"></el-button>
+    </div>
+    <VersionDialog v-model:visible="isVersionDialogVisible" />
+
+    <AppNotification :notification-state="notifications.notificationState" />
+    <UploadProgressPopup :visible="isLoading && isMultiFrameMode" :progress="uploadProgress" />
   </div>
 </template>
 
 
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { ElRow, ElCol, ElButton } from 'element-plus';
-import { CloseBold } from '@element-plus/icons-vue';
+import { CloseBold,Setting } from '@element-plus/icons-vue';
 
 // 导入布局组件
 import ControlPanel from './layouts/ControlPanel.vue';
 import LeftColumn from './layouts/LeftColumn.vue';
 import RightColumn from './layouts/RightColumn.vue';
-import UploadProgressPopup from './utils/UploadProgressPopup.vue'; // <-- 新增这一行
+import UploadProgressPopup from './utils/UploadProgressPopup.vue';
 
 // 导入所有需要的 UI 子组件
 import SingleFrameSystem from './imgProcess/SingleFrameSystem.vue';
@@ -182,8 +114,12 @@ import AppNotification from './imgProcess/AppNotification.vue';
 import ResultData from './imgProcess/ResultData.vue';
 import BackendLogs from './imgProcess/BackendLogs.vue';
 import AlgorithmReport from './imgProcess/AlgorithmReport.vue';
+import VersionDialog from './utils/VersionDialog.vue';
+
 // 导入数据产品操作按钮组件
 import DataProductActions from './imgProcess/DataProductActions.vue';
+import ParameterSettingsDialog from './imgProcess/ParameterSettingsDialog.vue';
+import IniConfigEditor from './imgProcess/IniConfigEditor.vue';
 
 // 导入业务流程编排器
 import { useProcessOrchestrator } from '../composables/useProcessOrchestrator.js';
@@ -219,6 +155,10 @@ const {
 
   multiFramePreviewLoader,
   uploadProgress,
+  isVersionDialogVisible,
+  isSettingsDialogVisible,
+  parameterSettings,
+  handleSaveSettings,
 
   // 方法
   handleModeChange, handleInfer, receiveFileFromMainViewer, handleDeleteSingleFrameImage,
@@ -227,6 +167,30 @@ const {
   toggleSseConnection, clearAllLogsAndReports, zoomIn, zoomOut,
   toggleCropping, handleConfirmCrop
 } = useProcessOrchestrator(mainViewerRef, multiFrameSystemRef, dataColumnRef, folderInputRef);
+
+const hasResults = computed(() => {
+  if (isMultiFrameMode.value) {
+    return !!multiFrameResultImage.value;
+  }
+  return additionalImages.value.some(img => img.label === '结果图像');
+});
+
+// 计算属性，用于分离出单帧模式下的主结果图像
+const mainResultImage = computed(() => {
+  if (isMultiFrameMode.value) return null;
+  return additionalImages.value.find(img => img.label === '结果图像');
+});
+
+// 计算属性，用于分离出次要结果（如裁剪的感兴趣区域）
+const secondaryResults = computed(() => {
+  if (isMultiFrameMode.value) return [];
+  return additionalImages.value.filter(img => img.label !== '结果图像');
+});
+
+const hasSecondaryResults = computed(() => {
+  if (isMultiFrameMode.value) return !!multiFrameRoiImage.value;
+  return secondaryResults.value.length > 0;
+})
 </script>
 
 <style scoped>
@@ -263,38 +227,101 @@ const {
 .custom-close-button:hover {
   background-color: #ff7875;
 }
+
+.custom-corner-button {
+  padding: 8px;
+  background-color: rgb(25, 25, 25);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  transition: all 0.3s;
+}
+.custom-corner-button:hover {
+  background-color: #5a5a5a;
+}
+
 .main-content-row {
   height: calc(100vh - 210px);
 }
-.main-viewer-area {
-  position: relative;
-  width: 100%;
-  height: 100%;
-}
-.viewer-controls {
+#version-info-bgd {
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  z-index: 10;
+  top: 10px;
+  left: 10px;
 }
-.viewer-content {
-  width: 100%;
-  height: 100%;
+#log-out-bgd {
+  position: absolute;
+  top: 10px;
+  right: 10px;
 }
-.additional-viewer-card {
-  flex-shrink: 0;
-  width: 45%;
-  min-width: 250px;
-  height: 100%;
-}
-.no-results-placeholder {
-  width: 100%;
-  height: 100%;
+
+/* 主内容区垂直 Flex 布局 */
+.main-content-wrapper {
   display: flex;
-  justify-content: center;
-  align-items: center;
-  color: #888;
-  font-style: italic;
+  flex-direction: column;
+  gap: 20px; /* 各个分区之间的垂直间距 */
 }
+
+.content-section {
+  width: 100%;
+}
+
+/* 1. 图像分区样式 */
+.image-section {
+  height: 65vh; /* 分配一个固定的高度 */
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.viewer-wrapper {
+  flex-grow: 1; /* 占据主要空间 */
+  display: flex;
+  gap: 12px;
+  min-height: 0;
+}
+.zoom-slider-layout {
+  flex-shrink: 0; /* 不会被压缩 */
+  transition: width 0.3s ease-in-out;
+  width: 100%;
+}
+/* 【新增】当处于并排模式时，滑动条容器宽度变为50% */
+.zoom-slider-layout.split-view {
+  width: 50%;
+}
+.image-display-box {
+  flex-grow: 1; flex-basis: 100%;
+  display: flex; justify-content: center; align-items: center;
+  transition: all 0.3s ease-in-out; position: relative; height: 100%;
+}
+.image-display-box.split-view {
+  flex-basis: 50%;
+}
+.main-viewer-area, .viewer-content, .additional-viewer-card {
+  position: relative; width: 100%; height: 100%;
+  border: 1px solid #4a4a4a; border-radius: 4px;
+}
+.viewer-controls { position: absolute; top: 0; left: 0; width: 100%; z-index: 10; }
+
+/* 2. 图表分区样式 */
+.chart-section {
+  height: 60vh; /* 分配一个固定的高度 */
+}
+
+/* 3. 数据分区样式 */
+.data-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* 4. 日志和报告分区样式 */
+.logs-and-report-section {
+  display: flex;
+  gap: 20px;
+  height: 40vh; /* 分配一个固定的高度 */
+}
+.log-wrapper, .report-wrapper {
+  flex: 1; /* 两边各占一半 */
+  min-height: 0;
+}
+
 </style>

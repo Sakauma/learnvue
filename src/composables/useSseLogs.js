@@ -73,6 +73,8 @@ export function useSseLogs(url) {
         try {
             // 创建新的EventSource实例
             eventSource.value = new EventSource(url);
+            //const fullSseUrl = import.meta.env.VITE_API_BASE_URL + url;
+            //eventSource.value = new EventSource(fullSseUrl);
 
             // 监听连接成功事件
             eventSource.value.onopen = () => {

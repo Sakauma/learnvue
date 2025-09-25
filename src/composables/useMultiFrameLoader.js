@@ -96,6 +96,7 @@ export function useMultiFrameLoader(showNotificationCallback) {
     const isLoadingFrame = ref(false);
     const currentImageRows = ref(0);
     const currentImageCols = ref(0);
+    const isProcessingList = ref(false); // 处理文件列表的加载状态
     const totalFrames = computed(() => fileList.value.length);
     const fileListNames = computed(() => fileList.value.map(f => f.displayName));
 
@@ -155,6 +156,13 @@ export function useMultiFrameLoader(showNotificationCallback) {
             showNotificationCallback("⚠️ 正在加载，请稍后再选择文件夹。");
             return;
         }
+
+        if (isProcessingList.value) { // 检查是否正在处理
+            showNotificationCallback("⚠️ 正在处理文件，请稍候...");
+            return;
+        }
+        isProcessingList.value = true;
+
         clearFrames();
         console.log('[loader] 开始处理选择的文件...');
 
@@ -228,6 +236,8 @@ export function useMultiFrameLoader(showNotificationCallback) {
         } catch (error) {
             console.error('[loader] 处理文件列表时发生严重错误:', error);
             showNotificationCallback('❌ 处理文件时发生未知错误，请检查控制台。');
+        }finally {
+            isProcessingList.value = false; // 在 finally 块中确保重置状态
         }
     }
 
@@ -261,6 +271,7 @@ export function useMultiFrameLoader(showNotificationCallback) {
         currentFrameImageUrl,
         totalFrames,
         isLoadingFrame,
+        isProcessingList,
         processSelectedFiles,
         loadFrame,
         nextFrame,

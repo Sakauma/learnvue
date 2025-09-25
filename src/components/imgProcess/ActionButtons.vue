@@ -2,13 +2,12 @@
 <template>
   <!-- 动作按钮容器，用于集中展示功能按钮 -->
   <div class="action-buttons-container">
-    <span style="color: white; margin: 0 10px;">--></span>
-
-    <!-- 感兴趣图像区域计算按钮 -->
+    <span style="color: white; margin: 0 10px;"></span>
+    <!-- 轨迹分析计算按钮 -->
     <el-button
         class="feature-button"
         @click="$emit('custom-action-3')">
-      感兴趣图像区域计算
+      轨迹分析
     </el-button>
 
     <!-- 编辑算法配置文件按钮 -->
@@ -51,7 +50,6 @@ defineEmits([
   border: none;
   border-radius: 8px;
   padding: 8px 15px;
-  margin-left: 10px;
   cursor: pointer;
   transition: background-color 0.3s;
 }

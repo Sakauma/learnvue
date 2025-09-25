@@ -26,7 +26,7 @@ export const useProcessStore = defineStore('process', {
      */
     state: () => ({
         /** @type {'singleFrame' | 'multiFrame'} 当前选择的处理模式 */
-        selectedMode: 'singleFrame',
+        selectedMode: 'multiFrame',
         /** @type {string} 选择的算法大类 (例如 'classification', 'detection') */
         selectedAlgorithmType: '',
         /** @type {string} 选择的具体算法名称 */
@@ -181,7 +181,7 @@ export const useProcessStore = defineStore('process', {
          * @description 执行单帧图像识别的异步操作。
          * @returns {Promise<{success: boolean, resultImage?: string | null, textResults?: string}>} 返回一个包含操作结果的对象。
          */
-        async inferSingleFrame() {
+        async inferSingleFrame(abortSignal) {
             if (!this.canInferInCurrentMode) return { success: false };
             this.isLoading = true;
             this.allFeaturesData = null;
@@ -193,7 +193,8 @@ export const useProcessStore = defineStore('process', {
                 this.selectedSpecificAlgorithm,
                 this.imageRows,
                 this.imageCols,
-                this.cropCoordinates
+                this.cropCoordinates,
+                abortSignal
             );
 
             this.isLoading = false;
@@ -218,7 +219,7 @@ export const useProcessStore = defineStore('process', {
         /**
          * @description 执行多帧（文件夹）识别的异步操作。
          */
-        async inferMultiFrame() {
+        async inferMultiFrame(abortSignal) {
             if (!this.canInferInCurrentMode) return;
             // 重置状态
             this.isLoading = true;
@@ -229,7 +230,8 @@ export const useProcessStore = defineStore('process', {
 
             const result = await inferenceHandler.performMultiFrameInference(
                 this.multiFrameFiles,
-                this.selectedSpecificAlgorithm
+                this.selectedSpecificAlgorithm,
+                abortSignal
             );
 
             if (result?.success && result.data) {

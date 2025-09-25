@@ -1,7 +1,7 @@
 /*MainImageViewer.vue*/
 <template>
   <!-- 图像显示区域 -->
-  <div class="image-container" ref="imageContainerRef">
+  <div class="image-container" ref="imageContainerRef" @wheel.prevent="handleWheel">
     <!-- 预览图像 -->
     <el-image
         v-if="imageUrl && !isCroppingActive"
@@ -41,10 +41,22 @@ const props = defineProps({
   isCroppingActive: Boolean,
 });
 
-const emit = defineEmits(['crop-confirmed']);
+const emit = defineEmits(['crop-confirmed', 'zoom-in', 'zoom-out']);
 
 const imageContainerRef = ref(null);
 const cropperRef = ref(null);
+
+// 处理鼠标滚轮事件的函数
+function handleWheel(event) {
+  // event.deltaY < 0 表示向上滚动 (放大)
+  if (event.deltaY < 0) {
+    emit('zoom-in');
+  }
+  // event.deltaY > 0 表示向下滚动 (缩小)
+  else {
+    emit('zoom-out');
+  }
+}
 
 /**
  * @description 父组件可以通过调用此方法来获取裁剪结果

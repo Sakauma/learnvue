@@ -30,7 +30,7 @@ export function useInference(showNotificationCallback) {
      * @param {Object} cropData - 裁剪数据（可选）
      * @returns {Promise<Object>} - 返回包含识别结果的对象
      */
-    async function performInference(file, fileMD5, algorithm, rows, cols, cropData = null) {
+    async function performInference(file, fileMD5, algorithm, rows, cols, cropData = null, abortSignal) {
         // 检查必要参数是否存在
         if (!file || !algorithm) {
             showNotificationCallback('请选择图像和算法后再进行识别。');
@@ -61,6 +61,7 @@ export function useInference(showNotificationCallback) {
             // 发送POST请求到/infer端点
             const response = await axios.post('/infer', formData, {
                 headers: { 'Content-Type': 'multipart/form-data' },
+                signal: abortSignal,
             });
 
             // 处理成功响应
@@ -95,6 +96,11 @@ export function useInference(showNotificationCallback) {
             showNotificationCallback(response.data.message || '✅ 识别成功！');
             return { success: true, data: response.data, newChartValues: newChartYValues };
         } catch (error) {
+            // 处理取消操作的错误
+            if (axios.isCancel(error)) {
+                showNotificationCallback('操作已取消');
+                return { success: false, error: 'Cancelled' };
+            }
             // 处理错误
             console.error('识别请求失败:', error);
             let errorMessage = '❌ 识别失败，请检查网络或联系管理员。';
@@ -111,7 +117,7 @@ export function useInference(showNotificationCallback) {
         }
     }
 
-    async function performMultiFrameInference(files, algorithm) {
+    async function performMultiFrameInference(files, algorithm, abortSignal) {
         if (!files || files.length === 0 || !algorithm) {
             showNotificationCallback('请选择包含有效文件的文件夹和算法。');
             return { success: false, error: 'Missing files or algorithm' };
@@ -134,7 +140,8 @@ export function useInference(showNotificationCallback) {
                 onUploadProgress: (progressEvent) => {
                     const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
                     uploadProgress.value = percentCompleted;
-                }
+                },
+                signal: abortSignal,
             });
 
             if (response.data && response.data.success) {
@@ -146,6 +153,11 @@ export function useInference(showNotificationCallback) {
                 return { success: false, error: errorMessage };
             }
         } catch (error) {
+            // 处理取消操作的错误
+            if (axios.isCancel(error)) {
+                showNotificationCallback('上传已取消');
+                return { success: false, error: 'Cancelled' };
+            }
             console.error('多帧识别请求失败:', error);
             const errorMessage = error.response?.data?.message || error.message || '请求失败，请检查网络或联系管理员。';
             showNotificationCallback(`❌ 多帧识别失败: ${errorMessage}`);

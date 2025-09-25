@@ -3,7 +3,7 @@
   <div class="multi-frame-system-wrapper">
     <div class="controls-bar-area">
       <div class="common-controls">
-        <el-button class="bar-button" :icon="Upload" title="选择文件夹" @click="$emit('request-folder-select')"></el-button>
+        <el-button class="bar-button" :icon="Upload" title="选择文件夹" @click="$emit('request-folder-select')":disabled="props.loader.isProcessingList.value"></el-button>
         <el-button class="bar-button" :icon="Delete" title="清除所有帧" @click="handleDeleteAllFrames" :disabled="!isAnyFrameLoaded"></el-button>
         <el-button class="bar-button" :icon="ZoomIn" title="放大" @click="$emit('zoom-in')" :disabled="!isAnyFrameDisplayable"></el-button>
         <el-button class="bar-button" :icon="ZoomOut" title="缩小" @click="$emit('zoom-out')" :disabled="!isAnyFrameDisplayable"></el-button>
@@ -28,7 +28,7 @@
       </div>
     </div>
 
-    <div class="image-display-area">
+    <div class="image-display-area" @wheel.prevent="handleWheel">
       <el-image
           v-if="props.loader.currentFrameImageUrl.value"
           :key="props.loader.currentFrameImageUrl.value"
@@ -101,6 +101,15 @@ const placeholderText = computed(() => {
   if (props.actualResultFrameCount > 0) return '结果已生成，请使用导航查看';
   return '选择文件夹以预览图像';
 });
+
+// 【新增】处理鼠标滚轮事件的函数
+function handleWheel(event) {
+  if (event.deltaY < 0) {
+    emit('zoom-in');
+  } else {
+    emit('zoom-out');
+  }
+}
 
 // --- 直接调用 props.loader 或 emit 事件 ---
 function handleSliderChange(newIndex) {

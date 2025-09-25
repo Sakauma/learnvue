@@ -1,32 +1,52 @@
 /*ResultData.vue*/
 <template>
-  <!-- 结果数据容器 -->
   <div class="result-data-container">
-    <!-- 表格头部包装器 -->
     <div class="table-header-wrapper">
-      <!-- 表格标题，根据dataMode和idx动态显示 -->
       <h4 class="table-title">
         {{ dataMode ? `特征数据 (帧: ${idx + 1})` : '特征数据' }}
       </h4>
     </div>
 
-    <!-- 特征表格组件 -->
-    <el-table
-        :data="tableData"
-        :show-header="tableData.length > 0 && props.dataMode"
-        :empty-text="emptyText"
-        style="width: 100%"
-        class="data-element-table">  // 添加表格样式类
-      <!-- 特征名称列 -->
-      <el-table-column prop="name" label="特征名称" width="250" />
-      <!-- 值列 -->
-      <el-table-column prop="value" label="值">
-        <!-- 自定义列内容 -->
-        <template #default="{ row }">
-          <span>{{ row.displayValue }}</span>
-        </template>
-      </el-table-column>
-    </el-table>
+    <div class="multi-table-container">
+      <el-table
+          :data="column1Data"
+          :show-header="false"
+          :empty-text="emptyText"
+          class="data-element-table">
+        <el-table-column prop="name" label="特征名称" width="160" />
+        <el-table-column prop="value" label="值">
+          <template #default="{ row }">
+            <span>{{ row.displayValue }}</span>
+          </template>
+        </el-table-column>
+      </el-table>
+
+      <el-table
+          :data="column2Data"
+          :show-header="false"
+          :empty-text="emptyText"
+          class="data-element-table">
+        <el-table-column prop="name" label="特征名称" width="160" />
+        <el-table-column prop="value" label="值">
+          <template #default="{ row }">
+            <span>{{ row.displayValue }}</span>
+          </template>
+        </el-table-column>
+      </el-table>
+
+      <el-table
+          :data="column3Data"
+          :show-header="false"
+          :empty-text="emptyText"
+          class="data-element-table">
+        <el-table-column prop="name" label="特征名称" width="160" />
+        <el-table-column prop="value" label="值">
+          <template #default="{ row }">
+            <span>{{ row.displayValue }}</span>
+          </template>
+        </el-table-column>
+      </el-table>
+    </div>
   </div>
 </template>
 
@@ -99,6 +119,10 @@ const tableData = computed(() => {
   });
 });
 
+const column1Data = computed(() => tableData.value.slice(0, 4));
+const column2Data = computed(() => tableData.value.slice(4, 8));
+const column3Data = computed(() => tableData.value.slice(8, 12));
+
 // 计算属性：根据dataMode和数据情况生成空数据提示文本
 const emptyText = computed(() => {
   if (props.dataMode && (!props.dataValue || Object.keys(props.dataValue).length === 0)) {
@@ -109,7 +133,6 @@ const emptyText = computed(() => {
   return '无数据';
 });
 </script>
-
 
 <style scoped>
 .result-data-container {
@@ -135,6 +158,12 @@ const emptyText = computed(() => {
   text-align: left;
 }
 
+/* 用于排列三个表格的 Flexbox 容器 */
+.multi-table-container {
+  display: flex;
+  gap: 10px; /* 表格之间的间距 */
+}
+
 .data-element-table {
   --el-table-text-color: white;
   --el-table-border-color: rgb(75, 75, 75);
@@ -145,6 +174,7 @@ const emptyText = computed(() => {
   --el-table-row-hover-bg-color: rgb(55, 75, 95);
   --el-table-empty-text-color: white;
   border: none;
+  flex: 1;
 }
 
 .data-element-table :deep(.el-table__header-wrapper th),

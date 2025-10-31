@@ -25,7 +25,7 @@ export const useProcessStore = defineStore('process', {
      * @returns {object} 包含所有状态的初始值的对象。
      */
     state: () => ({
-        /** @type {'singleFrame' | 'multiFrame'} 当前选择的处理模式 */
+        /** @type {'singleFrame' | 'multiFrame'| 'gjMode'} 当前选择的处理模式 */
         selectedMode: 'multiFrame',
         /** @type {string} 选择的算法大类 (例如 'classification', 'detection') */
         selectedAlgorithmType: '',
@@ -39,6 +39,17 @@ export const useProcessStore = defineStore('process', {
         selectedPrecision: 'float64',
         // /** @type {string} 用户在UI中手动输入的文件夹路径（多帧模式） */
         // manualFolderPath: '',
+
+        // --- 【新增】新参数的状态 ---
+        /** @type {string} 卫星型号 ('H' 或 'G') */
+        satelliteType: 'H',
+        /** @type {string} 具体卫星型号 (例如 'H03', 'G01') */
+        satelliteModel: 'H03',
+        /** @type {string} 段波类型 (例如 'gazeShort') */
+        waveType: 'gazeShort',
+        /** @type {string} 轨迹条目 (例如 '1001') */
+        trajectoryEntry: '1001',
+
         /** @type {File | null} 单帧模式下上传的原始文件对象 */
         singleFrameFile: null,
         /** @type {string} 单帧模式下上传文件的MD5校验值 */
@@ -89,6 +100,10 @@ export const useProcessStore = defineStore('process', {
          */
         canInferInCurrentMode: (state) => {
             if (!state.selectedSpecificAlgorithm) return false; // 必须选择一个算法
+            // 【新增】GJ 模式暂时不可用
+            if (state.selectedMode === 'gjMode') {
+                return false;
+            }
             if (state.selectedMode === 'multiFrame') {
                 return state.multiFrameFiles.length > 0;
                 //return !!state.originalFolderPath.trim(); // 多帧模式下必须有确认的文件夹路径
@@ -106,12 +121,16 @@ export const useProcessStore = defineStore('process', {
 
         /**
          * @description 设置当前的 işlem modu。
-         * @param {'singleFrame' | 'multiFrame'} newMode - 要设置的新模式。
+         * @param {'singleFrame' | 'multiFrame'| 'gjMode'} newMode - 要设置的新模式。
          */
         setMode(newMode) {
             if (this.selectedMode === newMode) return;
             this.selectedMode = newMode;
-            notifications.showNotification(`模式已切换为: ${newMode === 'singleFrame' ? '单帧模式' : '多帧模式'}`);
+            let modeName = '未知模式';
+            if (newMode === 'singleFrame') modeName = '单帧模式';
+            if (newMode === 'multiFrame') modeName = '多帧模式';
+            if (newMode === 'gjMode') modeName = 'GJ 模式';
+            notifications.showNotification(`模式已切换为: ${modeName}`);
             this.resetAllState(); // 切换模式时清空所有相关状态
         },
 
@@ -231,6 +250,8 @@ export const useProcessStore = defineStore('process', {
             const result = await inferenceHandler.performMultiFrameInference(
                 this.multiFrameFiles,
                 this.selectedSpecificAlgorithm,
+                1,       // mode = 1
+                null,    // trackFile = null
                 abortSignal
             );
 

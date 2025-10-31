@@ -56,6 +56,12 @@ export function useProcessOrchestrator(mainViewerRef, multiFrameSystemRef, dataC
         imageCols, // 图像列数
         selectedPrecision, // 选择的图像精度
         //manualFolderPath, // 用户手动输入的文件夹路径
+
+        satelliteType,
+        satelliteModel,
+        waveType,
+        trajectoryEntry,
+
         resultFolderPathFromApi, // 从后端API获取的结果文件夹路径
         resultFilesFromApi, // 从后端API获取的结果文件列表
         currentMultiFrameIndex, // 多帧模式下，当前查看的结果帧索引
@@ -123,6 +129,11 @@ export function useProcessOrchestrator(mainViewerRef, multiFrameSystemRef, dataC
         imageRows: imageRows.value,
         imageCols: imageCols.value,
         selectedPrecision: selectedPrecision.value,
+        // 添加新字段
+        satelliteType: satelliteType.value,
+        satelliteModel: satelliteModel.value,
+        waveType: waveType.value,
+        trajectoryEntry: trajectoryEntry.value,
     }));
 
     // 保存设置的回调函数
@@ -133,6 +144,11 @@ export function useProcessOrchestrator(mainViewerRef, multiFrameSystemRef, dataC
         store.imageRows = newSettings.imageRows;
         store.imageCols = newSettings.imageCols;
         store.selectedPrecision = newSettings.selectedPrecision;
+        // 保存新字段
+        store.satelliteType = newSettings.satelliteType;
+        store.satelliteModel = newSettings.satelliteModel;
+        store.waveType = newSettings.waveType;
+        store.trajectoryEntry = newSettings.trajectoryEntry;
         notifications.showNotification('✅ 参数已保存');
     };
 
@@ -426,6 +442,14 @@ export function useProcessOrchestrator(mainViewerRef, multiFrameSystemRef, dataC
         imageRows,
         imageCols,
         selectedPrecision,
+
+        // --- 【新增】导出新状态 ---
+        satelliteType,
+        satelliteModel,
+        waveType,
+        trajectoryEntry,
+        // --- 结束 【新增】 ---
+
         currentMultiFrameIndex,
         allFeaturesData,
         isLoading,

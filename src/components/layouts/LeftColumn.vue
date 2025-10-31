@@ -1,14 +1,12 @@
-/* LeftColumn.vue */
+/*LeftColumn.vue*/
 <template>
   <div class="left-column-layout">
     <div class="viewer-wrapper">
       <slot name="viewer"></slot>
     </div>
-
     <div class="zoom-slider-layout">
       <slot name="zoom"></slot>
     </div>
-
     <div class="logs-layout">
       <slot name="logs"></slot>
     </div>
@@ -32,8 +30,6 @@
   flex-shrink: 0;
   display: flex; /* 使用 flex 布局来容纳子元素 */
   position: relative;
-  /* 【已移除】border: 2px solid #ccc; */
-  /* 【新增】为内部的 flex 容器添加间距 */
   gap: 12px;
 }
 

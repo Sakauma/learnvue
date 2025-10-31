@@ -1,4 +1,4 @@
-/* ParameterSettingsDialog.vue */
+/*ParameterSettingsDialog.vue*/
 <template>
   <el-dialog
       :model-value="visible"
@@ -13,6 +13,7 @@
         <el-select v-model="localSettings.selectedMode" placeholder="选择模式">
           <el-option label="单帧模式" value="singleFrame"></el-option>
           <el-option label="多帧模式" value="multiFrame"></el-option>
+          <el-option label="轨迹模式" value="gjMode"></el-option>
         </el-select>
       </el-form-item>
 
@@ -21,6 +22,50 @@
             v-model:algorithmType="localSettings.algorithmType"
             v-model:specificAlgorithm="localSettings.specificAlgorithm"
         />
+      </el-form-item>
+
+      <el-form-item label="卫星型号:">
+        <div class="composite-select-group">
+          <el-select
+              v-model="localSettings.satelliteType"
+              placeholder="选择星型"
+              class="short-select"
+              @change="onSatelliteTypeChange"
+          >
+            <el-option label="H星" value="H"></el-option>
+            <el-option label="G星" value="G"></el-option>
+          </el-select>
+
+          <el-select
+              v-model="localSettings.satelliteModel"
+              placeholder="选择型号"
+              class="short-select"
+          >
+            <el-option
+                v-for="model in availableModels"
+                :key="model.value"
+                :label="model.label"
+                :value="model.value"
+            ></el-option>
+          </el-select>
+        </div>
+      </el-form-item>
+
+      <el-form-item label="段波类型:">
+        <el-select v-model="localSettings.waveType" placeholder="选择段波类型" class="full-width-select">
+          <el-option label="凝视短波" value="gazeShort"></el-option>
+          <el-option label="凝视中波" value="gazeMid"></el-option>
+          <el-option label="扫描短波" value="scanShort"></el-option>
+          <el-option label="扫描中波" value="scanMid"></el-option>
+        </el-select>
+      </el-form-item>
+
+      <el-form-item label="轨迹条目:">
+        <el-select v-model="localSettings.trajectoryEntry" placeholder="选择轨迹条目" class="full-width-select">
+          <el-option label="1001" value="1001"></el-option>
+          <el-option label="1002" value="1002"></el-option>
+          <el-option label="1004" value="1004"></el-option>
+        </el-select>
       </el-form-item>
 
       <el-form-item label="图像尺寸:">
@@ -49,7 +94,7 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue';
+import { ref, computed } from 'vue';
 import { ElDialog, ElForm, ElFormItem, ElSelect, ElOption, ElInputNumber, ElButton } from 'element-plus';
 import AlgorithmSelector from './AlgorithmSelector.vue';
 
@@ -61,6 +106,34 @@ const props = defineProps({
 const emit = defineEmits(['update:visible', 'save']);
 
 const localSettings = ref({});
+
+const satelliteModelOptions = {
+  H: [
+    { label: 'H03', value: 'H03' },
+    { label: 'H04', value: 'H04' },
+  ],
+  G: [
+    { label: 'G01', value: 'G01' },
+    { label: 'G02', value: 'G02' },
+    { label: 'G03', value: 'G03' },
+  ],
+};
+
+const availableModels = computed(() => {
+  const type = localSettings.value.satelliteType;
+  return type ? satelliteModelOptions[type] : [];
+});
+
+// 当卫星类型（H/G）改变时，自动重置具体型号
+function onSatelliteTypeChange(newType) {
+  const models = satelliteModelOptions[newType];
+  if (models && models.length > 0) {
+    // 自动选择列表中的第一个作为默认值
+    localSettings.value.satelliteModel = models[0].value;
+  } else {
+    localSettings.value.satelliteModel = '';
+  }
+}
 
 // 当对话框打开时，从 props 同步最新的设置到本地
 function onDialogOpen() {
@@ -77,8 +150,37 @@ function handleSave() {
 .el-form-item {
   display: flex;
   align-items: center;
+  margin-bottom: 22px;
 }
 .el-select, .el-input-number {
   width: 180px;
+}
+
+/* 【新增】让单个下拉菜单占满可用宽度 */
+.full-width-select {
+  width: 100%;
+}
+
+/* 【新增】用于并排放置两个下拉菜单的容器 */
+.composite-select-group {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+}
+
+/* 【新增】用于组合中的短下拉菜单 */
+.composite-select-group .short-select {
+  flex: 1;
+  width: auto; /* 覆盖默认的180px，使其在flex中自由伸缩 */
+}
+
+/* 确保算法选择器也占满宽度 */
+.el-form-item :deep(.algorithm-selectors) {
+  width: 100%;
+}
+.el-form-item :deep(.algorithm-selectors .algorithm-select),
+.el-form-item :deep(.algorithm-selectors .specific-algorithm-select) {
+  flex: 1;
+  width: auto;
 }
 </style>

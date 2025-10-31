@@ -303,7 +303,7 @@ const hasSecondaryResults = computed(() => {
 
 /* 2. 图表分区样式 */
 .chart-section {
-  height: 60vh; /* 分配一个固定的高度 */
+  height: 25vh; /* 分配一个固定的高度 */
 }
 
 /* 3. 数据分区样式 */

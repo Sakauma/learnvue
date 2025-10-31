@@ -117,10 +117,16 @@ export function useInference(showNotificationCallback) {
         }
     }
 
-    async function performMultiFrameInference(files, algorithm, abortSignal) {
+    async function performMultiFrameInference(files, algorithm, mode, trackFile, abortSignal) {
         if (!files || files.length === 0 || !algorithm) {
             showNotificationCallback('请选择包含有效文件的文件夹和算法。');
             return { success: false, error: 'Missing files or algorithm' };
+        }
+
+        // 对 mode=2 (GJ) 的校验，虽然目前未实现，但逻辑是完整的
+        if (mode === 2 && (!trackFile || trackFile.name === '')) {
+            showNotificationCallback('轨迹模式必须提供一个轨迹文件。');
+            return { success: false, error: 'Missing track file for GJ mode' };
         }
 
         isLoading.value = true;
@@ -132,6 +138,15 @@ export function useInference(showNotificationCallback) {
             formData.append('files', file);
         });
         formData.append('algorithm', algorithm);
+
+        // 添加 mode 参数
+        formData.append('mode', String(mode));
+
+        // 添加 trackFile 参数（如果存在）
+        // 即使 mode=1 且 trackFile 为 null，后端 @RequestPart(required = false) 也能正确处理
+        if (trackFile) {
+            formData.append('trackFile', trackFile);
+        }
 
         try {
             // 【关键】调用新的后端接口 '/infer_multi_frame'

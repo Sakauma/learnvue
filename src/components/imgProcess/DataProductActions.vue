@@ -1,4 +1,4 @@
-/* DataProductActions.vue */
+/*DataProductActions.vue*/
 <template>
   <div class="data-product-actions-container">
     <el-button

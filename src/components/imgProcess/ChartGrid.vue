@@ -32,7 +32,7 @@ const chartRefs = ref([]);
 const featureOptions = FEATURE_DEFINITIONS;
 
 // 【已修改】初始化图表配置，现在默认显示全部12个特征图表
-const chartConfigs = ref(FEATURE_DEFINITIONS);
+const chartConfigs = ref(FEATURE_DEFINITIONS.slice(0, 3));
 </script>
 
 <style scoped>
@@ -41,7 +41,7 @@ const chartConfigs = ref(FEATURE_DEFINITIONS);
   height: 100%;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  grid-template-rows: repeat(4, 1fr);
+  grid-template-rows: 1fr;
   gap: 10px;
   background-color: rgb(27, 40, 56);
 }

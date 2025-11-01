@@ -118,14 +118,23 @@ export function useInference(showNotificationCallback) {
     }
 
     async function performMultiFrameInference(files, algorithm, mode, trackFile, abortSignal) {
-        if (!files || files.length === 0 || !algorithm) {
-            showNotificationCallback('请选择包含有效文件的文件夹和算法。');
-            return { success: false, error: 'Missing files or algorithm' };
+
+        // 1. 检查算法 (所有模式都需要)
+        if (!algorithm) {
+            showNotificationCallback('请选择一个算法。');
+            return { success: false, error: 'Missing algorithm' };
         }
 
-        // 对 mode=2 (GJ) 的校验，虽然目前未实现，但逻辑是完整的
-        if (mode === 2 && (!trackFile || trackFile.name === '')) {
-            showNotificationCallback('轨迹模式必须提供一个轨迹文件。');
+        // 2. 根据模式检查输入文件
+        if (mode === 1 && (!files || files.length === 0)) {
+            // 模式 1 (多帧) 需要图像文件
+            showNotificationCallback('请选择包含有效文件的文件夹。');
+            return { success: false, error: 'Missing files for MultiFrame mode' };
+        }
+
+        if (mode === 2 && !trackFile) {
+            // 模式 2 (轨迹) 需要轨迹文件
+            showNotificationCallback('请选择一个轨迹文件。');
             return { success: false, error: 'Missing track file for GJ mode' };
         }
 
@@ -149,7 +158,6 @@ export function useInference(showNotificationCallback) {
         }
 
         try {
-            // 【关键】调用新的后端接口 '/infer_multi_frame'
             const response = await axios.post('/infer_multi_frame', formData, {
                 headers: { 'Content-Type': 'multipart/form-data' },
                 onUploadProgress: (progressEvent) => {

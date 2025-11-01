@@ -40,7 +40,6 @@ export const useProcessStore = defineStore('process', {
         // /** @type {string} 用户在UI中手动输入的文件夹路径（多帧模式） */
         // manualFolderPath: '',
 
-        // --- 【新增】新参数的状态 ---
         /** @type {string} 卫星型号 ('H' 或 'G') */
         satelliteType: 'H',
         /** @type {string} 具体卫星型号 (例如 'H03', 'G01') */
@@ -60,6 +59,10 @@ export const useProcessStore = defineStore('process', {
         // originalFolderPath: '',
         /** 用于存储待上传文件的 state */
         multiFrameFiles: [],
+
+        /** @type {File | null} 轨迹模式下上传的轨迹文件 */
+        trajectoryFile: null,
+
         /** @type {string} API返回的结果文件所在的基础路径 */
         resultFolderPathFromApi: '',
         /** @type {object | null} API返回的结果文件列表，包含原始、ROI和输出图像名 */
@@ -82,7 +85,8 @@ export const useProcessStore = defineStore('process', {
          * @param {object} state - 当前的 store state。
          * @returns {boolean} 如果是多帧模式则返回 true。
          */
-        isMultiFrameMode: (state) => state.selectedMode === 'multiFrame',
+        isMultiFrameMode: (state) =>
+            state.selectedMode === 'multiFrame' || state.selectedMode === 'gjMode',
 
         /**
          * @description 获取多帧结果的总数量。
@@ -100,9 +104,8 @@ export const useProcessStore = defineStore('process', {
          */
         canInferInCurrentMode: (state) => {
             if (!state.selectedSpecificAlgorithm) return false; // 必须选择一个算法
-            // 【新增】GJ 模式暂时不可用
             if (state.selectedMode === 'gjMode') {
-                return false;
+                return !!state.trajectoryFile; // 轨迹模式下必须有轨迹文件
             }
             if (state.selectedMode === 'multiFrame') {
                 return state.multiFrameFiles.length > 0;
@@ -130,8 +133,8 @@ export const useProcessStore = defineStore('process', {
             if (newMode === 'singleFrame') modeName = '单帧模式';
             if (newMode === 'multiFrame') modeName = '多帧模式';
             if (newMode === 'gjMode') modeName = 'GJ 模式';
-            notifications.showNotification(`模式已切换为: ${modeName}`);
-            this.resetAllState(); // 切换模式时清空所有相关状态
+            this.resetAllState();
+            notifications.showNotification(`模式已切换为: ${modeName}。`);
         },
 
         /**
@@ -144,7 +147,6 @@ export const useProcessStore = defineStore('process', {
             this.singleFrameFileMD5 = md5;
         },
 
-        // --- 新增：用于设置待上传文件的 action ---
         setMultiFrameFiles(files) {
             this.multiFrameFiles = files;
             if (files.length > 0) {
@@ -160,6 +162,15 @@ export const useProcessStore = defineStore('process', {
             this.cropCoordinates = coords;
         },
 
+        setTrajectoryFile(file) {
+            this.trajectoryFile = file;
+            if (file) {
+                notifications.showNotification(`已加载轨迹文件: ${file.name}`);
+            } else {
+                notifications.showNotification('轨迹文件已清除。');
+            }
+        },
+
         /**
          * @description 重置所有与单帧模式相关的状态。
          */
@@ -168,16 +179,17 @@ export const useProcessStore = defineStore('process', {
             this.singleFrameFileMD5 = '';
             this.cropCoordinates = null;
             this.allFeaturesData = null;
-            notifications.showNotification('单帧图像及数据已清除。');
+            //notifications.showNotification('单帧图像及数据已清除。');
         },
 
         /**
          * @description 重置所有与多帧模式相关的状态。
          */
         resetMultiFrameData() {
-            this.multiFrameFiles = []; // <-- 新增
+            this.multiFrameFiles = [];
             //this.manualFolderPath = '';
             //this.originalFolderPath = '';
+            this.trajectoryFile = null;
             this.resultFolderPathFromApi = '';
             this.resultFilesFromApi = null;
             this.currentMultiFrameIndex = -1;
@@ -192,6 +204,7 @@ export const useProcessStore = defineStore('process', {
             this.resetSingleFrameData();
             this.resetMultiFrameData();
             this.isLoading = false;
+            //notifications.showNotification('界面数据已经清空。');
         },
 
         // --- 核心业务流程 Actions ---
@@ -247,13 +260,28 @@ export const useProcessStore = defineStore('process', {
             this.resultFilesFromApi = null;
             this.currentMultiFrameIndex = -1;
 
-            const result = await inferenceHandler.performMultiFrameInference(
-                this.multiFrameFiles,
-                this.selectedSpecificAlgorithm,
-                1,       // mode = 1
-                null,    // trackFile = null
-                abortSignal
-            );
+            let result;
+            if (this.selectedMode === 'multiFrame') {
+                result = await inferenceHandler.performMultiFrameInference(
+                    this.multiFrameFiles,
+                    this.selectedSpecificAlgorithm,
+                    1,       // mode = 1 (多帧)
+                    null,    // trackFile = null
+                    abortSignal
+                );
+            } else if (this.selectedMode === 'gjMode') {
+                result = await inferenceHandler.performMultiFrameInference(
+                    [],      // files = 空数组
+                    this.selectedSpecificAlgorithm,
+                    2,       // mode = 2 (轨迹)
+                    this.trajectoryFile, // trackFile
+                    abortSignal
+                );
+            } else {
+                notifications.showNotification(`❌ 未知的处理模式: ${this.selectedMode}`);
+                this.isLoading = false;
+                return;
+            }
 
             if (result?.success && result.data) {
                 this.resultFolderPathFromApi = result.data.resultPath || '';

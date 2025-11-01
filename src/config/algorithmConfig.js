@@ -7,7 +7,8 @@
 export const TRADITIONAL_ALGORITHMS = [
     { label: '光流法', value: 'opticalFlow' },
     { label: '多帧累积', value: 'multiFrameDifference' },
-    { label: '低秩稀疏', value: '低秩稀疏' }
+    { label: '低秩稀疏', value: '低秩稀疏' },
+    { label: '轨迹识别', value: 'GJDeal' }
 ];
 
 export const DEEP_LEARNING_ALGORITHMS = [

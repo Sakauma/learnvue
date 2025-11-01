@@ -12,7 +12,6 @@
           @change="onFileSelected"
           accept="image/*,.dat,.tif,.tiff,.bmp,.gif,.jpeg,.jpg,.png"
       >
-
       <!-- 上传图像按钮 -->
       <el-button
           class="bar-btn"

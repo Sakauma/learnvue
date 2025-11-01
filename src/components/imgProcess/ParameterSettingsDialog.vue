@@ -124,18 +124,15 @@ const availableModels = computed(() => {
   return type ? satelliteModelOptions[type] : [];
 });
 
-// 当卫星类型（H/G）改变时，自动重置具体型号
 function onSatelliteTypeChange(newType) {
   const models = satelliteModelOptions[newType];
   if (models && models.length > 0) {
-    // 自动选择列表中的第一个作为默认值
     localSettings.value.satelliteModel = models[0].value;
   } else {
     localSettings.value.satelliteModel = '';
   }
 }
 
-// 当对话框打开时，从 props 同步最新的设置到本地
 function onDialogOpen() {
   localSettings.value = JSON.parse(JSON.stringify(props.settings));
 }
@@ -156,25 +153,21 @@ function handleSave() {
   width: 180px;
 }
 
-/* 【新增】让单个下拉菜单占满可用宽度 */
 .full-width-select {
   width: 100%;
 }
 
-/* 【新增】用于并排放置两个下拉菜单的容器 */
 .composite-select-group {
   display: flex;
   gap: 10px;
   width: 100%;
 }
 
-/* 【新增】用于组合中的短下拉菜单 */
 .composite-select-group .short-select {
   flex: 1;
   width: auto; /* 覆盖默认的180px，使其在flex中自由伸缩 */
 }
 
-/* 确保算法选择器也占满宽度 */
 .el-form-item :deep(.algorithm-selectors) {
   width: 100%;
 }

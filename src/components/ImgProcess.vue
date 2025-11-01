@@ -13,11 +13,10 @@
         :is-multi-frame-mode="isMultiFrameMode"
         @infer="handleInfer"
         @open-settings="isSettingsDialogVisible = true"
-        @custom-action-3="handleCustomAction3"
+
         @open-config-editor="openConfigEditor"
     />
-    <input type="file" ref="folderInputRef" style="display: none" webkitdirectory directory multiple @change="handleFolderSelectedViaDialog"/>
-
+    <input type="file" ref="folderInputRef" style="display: none" @change="handleFolderSelectedViaDialog"/>
     <div class="main-content-wrapper">
 
       <div class="content-section image-section">
@@ -31,6 +30,8 @@
                   :image-url="singleFrameImageHandler.imageUrl.value"
                   :zoom-level="zoomLevel"
                   :is-cropping-active="isCroppingActive"
+                  :is-trajectory-mode="isTrajectoryMode"
+                  :trajectory-file="trajectoryFile"
                   @crop-confirmed="onSingleFrameCropConfirmed"
                   @zoom-in="zoomIn"
                   @zoom-out="zoomOut"
@@ -91,16 +92,13 @@
   </div>
 </template>
 
-
 <script setup>
 import { ref, computed } from 'vue';
-import { ElRow, ElCol, ElButton } from 'element-plus';
+import { ElButton } from 'element-plus';
 import { CloseBold,Setting } from '@element-plus/icons-vue';
 
 // 导入布局组件
 import ControlPanel from './layouts/ControlPanel.vue';
-import LeftColumn from './layouts/LeftColumn.vue';
-import RightColumn from './layouts/RightColumn.vue';
 import UploadProgressPopup from './utils/UploadProgressPopup.vue';
 
 // 导入所有需要的 UI 子组件
@@ -133,7 +131,9 @@ const folderInputRef = ref(null);
 // 2. 调用编排器，获取所有需要的数据和方法
 const {
   // 状态和 Refs
-  selectedMode, isMultiFrameMode, selectedAlgorithmType, selectedSpecificAlgorithm,
+  selectedMode, isMultiFrameMode,
+  isTrajectoryMode, trajectoryFile,
+  selectedAlgorithmType, selectedSpecificAlgorithm,
   imageRows, imageCols, selectedPrecision, manualFolderPath,
   currentMultiFrameIndex, allFeaturesData, isLoading, canInferInCurrentMode,
   zoomLevel, singleFrameImageHandler, parsedLogs, connectionStatus, connectionAttempts,
@@ -148,7 +148,6 @@ const {
   openConfigEditor,
   handleSaveConfig,
 
-  // 解构出新的数据产品内容
   canGenerateFullProduct,
   downloadFullProduct,
   transmitFullProduct,
@@ -163,7 +162,7 @@ const {
   // 方法
   handleModeChange, handleInfer, receiveFileFromMainViewer, handleDeleteSingleFrameImage,
   onSingleFrameCropConfirmed, handleFolderSelectedViaDialog, confirmManualFolderPath,
-  handleClearAllMultiFrames, triggerFolderDialogForPathHint, logOut, handleCustomAction3,
+  handleClearAllMultiFrames, triggerFolderDialogForPathHint, logOut,
   toggleSseConnection, clearAllLogsAndReports, zoomIn, zoomOut,
   toggleCropping, handleConfirmCrop
 } = useProcessOrchestrator(mainViewerRef, multiFrameSystemRef, dataColumnRef, folderInputRef);

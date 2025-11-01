@@ -12,9 +12,6 @@
         <el-button class="control-button" @click="$emit('open-settings')">
           参数设置
         </el-button>
-        <el-button class="control-button" @click="$emit('customAction3')">
-          轨迹分析
-        </el-button>
         <el-button class="control-button" @click="$emit('open-config-editor')">
           编辑算法配置文件
         </el-button>
@@ -46,7 +43,6 @@ const props = defineProps({
 const emit = defineEmits([
   'infer',
   'open-settings',
-  'customAction3',
   'open-config-editor',
 ]);
 </script>

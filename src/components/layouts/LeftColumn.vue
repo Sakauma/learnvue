@@ -26,9 +26,9 @@
 
 .viewer-wrapper {
   width: 100%;
-  height: 50vh; /* 保持原有高度 */
+  height: 50vh;
   flex-shrink: 0;
-  display: flex; /* 使用 flex 布局来容纳子元素 */
+  display: flex;
   position: relative;
   gap: 12px;
 }

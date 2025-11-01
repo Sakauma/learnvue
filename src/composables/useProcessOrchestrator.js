@@ -10,7 +10,6 @@ import { useNotifications } from './useNotifications.js';
 import { useImageHandler } from './useImageHandler.js';
 import { useSseLogs } from './useSseLogs.js';
 import { useZoom } from "./useZoom.js";
-// --- 新增：导入数据产品处理器 ---
 import { useDataProduct } from './useDataProduct.js';
 import {useMultiFrameLoader} from "./useMultiFrameLoader.js";
 
@@ -56,6 +55,7 @@ export function useProcessOrchestrator(mainViewerRef, multiFrameSystemRef, dataC
         imageCols, // 图像列数
         selectedPrecision, // 选择的图像精度
         //manualFolderPath, // 用户手动输入的文件夹路径
+        trajectoryFile,
 
         satelliteType,
         satelliteModel,
@@ -93,7 +93,6 @@ export function useProcessOrchestrator(mainViewerRef, multiFrameSystemRef, dataC
         currentMultiFrameIndex
     );
 
-    // --- 新增：实例化数据产品处理器 ---
     // 将 store 中的 allFeaturesData 和 currentMultiFrameIndex 作为响应式数据源传入
     const {
         canGenerateFullProduct,
@@ -129,7 +128,6 @@ export function useProcessOrchestrator(mainViewerRef, multiFrameSystemRef, dataC
         imageRows: imageRows.value,
         imageCols: imageCols.value,
         selectedPrecision: selectedPrecision.value,
-        // 添加新字段
         satelliteType: satelliteType.value,
         satelliteModel: satelliteModel.value,
         waveType: waveType.value,
@@ -158,6 +156,8 @@ export function useProcessOrchestrator(mainViewerRef, multiFrameSystemRef, dataC
      * @returns {number} 结果帧的数量。
      */
     const numberOfResultFrames = computed(() => resultFilesFromApi.value?.outputImageNames?.length || 0);
+
+    const isTrajectoryMode = computed(() => selectedMode.value === 'gjMode');
 
     // --- 4. 事件处理函数 (Methods) ---
     /**
@@ -276,26 +276,48 @@ export function useProcessOrchestrator(mainViewerRef, multiFrameSystemRef, dataC
     };
 
     const handleFolderSelectedViaDialog = (event) => {
-            const files = event.target.files;
-            if (!files || files.length === 0) return;
-            handleModeChange('multiFrame');
-            // 使用独立的 loader 处理预览
+        const files = event.target.files;
+        if (!files || files.length === 0) return;
+
+        if (selectedMode.value === 'multiFrame') {
             multiFramePreviewLoader.processSelectedFiles(files, imageRows.value, imageCols.value, selectedPrecision.value);
-            if (event.target) event.target.value = '';
-        };
+
+        } else if (selectedMode.value === 'gjMode') {
+            const file = files[0];
+            store.setTrajectoryFile(file);
+        }
+        if (event.target) event.target.value = '';
+    };
 
     const handleClearAllMultiFrames = () => {
             multiFramePreviewLoader.clearFrames();
             store.resetMultiFrameData();
-
-            notifications.showNotification('预览及结果已清空。');
+            //notifications.showNotification('预览及结果已清空。');
         };
 
     /**
      * @description 程序化地触发隐藏的文件夹输入框的点击事件。
+     * 【重要】根据当前模式动态修改 <input> 的属性。
      */
     const triggerFolderDialogForPathHint = () => {
-        folderInputRef.value?.click();
+        const input = folderInputRef.value;
+        if (!input) return;
+
+        if (selectedMode.value === 'multiFrame') {
+            // 设置为多文件和文件夹选择
+            input.webkitdirectory = true;
+            input.directory = true;
+            input.multiple = true;
+            input.accept = ".dat,.jpg,.jpeg,.png,.bmp,.gif,.tif,.tiff"; // 限制文件类型
+        } else if (selectedMode.value === 'gjMode') {
+            // 设置为单文件选择
+            input.webkitdirectory = false;
+            input.directory = false;
+            input.multiple = false;
+            input.accept = ".dat";
+        }
+
+        input.click();
     };
 
     /**
@@ -303,14 +325,6 @@ export function useProcessOrchestrator(mainViewerRef, multiFrameSystemRef, dataC
      */
     const logOut = () => {
         router.replace("/home");
-    };
-
-    /**
-     * @description 处理一个自定义操作（当前为占位符）。
-     */
-    const handleCustomAction3 = () => {
-        // TODO: “感兴趣图像区域计算”功能尚未实现，等待后续实现
-        notifications.showNotification('功能 “感兴趣图像区域计算” 尚未实现。', 2000);
     };
 
     /**
@@ -403,12 +417,6 @@ export function useProcessOrchestrator(mainViewerRef, multiFrameSystemRef, dataC
         window.removeEventListener('keydown', handleKeyDown);
     });
 
-    // watch(multiFramePreviewLoader.fileList, (newFiles) => {
-    //     if (newFiles && newFiles.length > 0) {
-    //         store.setMultiFrameFiles(newFiles);
-    //     }
-    // }, { deep: true });
-
     watch(multiFramePreviewLoader.fileList, (newFrameList) => {
         if (newFrameList && newFrameList.length > 0) {
             // 关键：我们需要的是去重后的原始文件列表，以发送给后端
@@ -437,18 +445,18 @@ export function useProcessOrchestrator(mainViewerRef, multiFrameSystemRef, dataC
         // 状态和 Refs
         selectedMode,
         isMultiFrameMode,
+        isTrajectoryMode,
+        trajectoryFile,
         selectedAlgorithmType,
         selectedSpecificAlgorithm,
         imageRows,
         imageCols,
         selectedPrecision,
 
-        // --- 【新增】导出新状态 ---
         satelliteType,
         satelliteModel,
         waveType,
         trajectoryEntry,
-        // --- 结束 【新增】 ---
 
         currentMultiFrameIndex,
         allFeaturesData,
@@ -468,11 +476,11 @@ export function useProcessOrchestrator(mainViewerRef, multiFrameSystemRef, dataC
         isConfigEditorVisible,
         currentConfig,
         multiFramePreviewLoader,
-        uploadProgress, // <-- 新增
-        isSettingsDialogVisible,    // 【新增】
+        uploadProgress,
+        isSettingsDialogVisible,
         isVersionDialogVisible,
-        parameterSettings,          // 【新增】
-        handleSaveSettings,         // 【新增】
+        parameterSettings,
+        handleSaveSettings,
 
         // 暴露数据产品相关的状态和方法
         canGenerateFullProduct,
@@ -489,7 +497,6 @@ export function useProcessOrchestrator(mainViewerRef, multiFrameSystemRef, dataC
         handleClearAllMultiFrames,
         triggerFolderDialogForPathHint,
         logOut,
-        handleCustomAction3,
         toggleSseConnection,
         clearAllLogsAndReports,
         zoomIn,

@@ -3,7 +3,7 @@
   <div class="multi-frame-system-wrapper">
     <div class="controls-bar-area">
       <div class="common-controls">
-        <el-button class="bar-button" :icon="Upload" title="选择文件夹" @click="$emit('request-folder-select')":disabled="props.loader.isProcessingList.value"></el-button>
+        <el-button class="bar-button" :icon="Upload" :title="props.isTrajectoryMode ? '选择轨迹文件' : '选择文件夹'" @click="$emit('request-folder-select')":disabled="props.loader.isProcessingList.value"></el-button>
         <el-button class="bar-button" :icon="Delete" title="清除所有帧" @click="handleDeleteAllFrames" :disabled="!isAnyFrameLoaded"></el-button>
         <el-button class="bar-button" :icon="ZoomIn" title="放大" @click="$emit('zoom-in')" :disabled="!isAnyFrameDisplayable"></el-button>
         <el-button class="bar-button" :icon="ZoomOut" title="缩小" @click="$emit('zoom-out')" :disabled="!isAnyFrameDisplayable"></el-button>
@@ -24,20 +24,20 @@
         <span class="frame-indicator">{{ navigationFrameIndicatorText }}</span>
       </div>
       <div v-else class="frame-navigation-controls no-frames-placeholder">
-        点击左上角按钮选择文件夹
+        {{ props.isTrajectoryMode ? '点击左上角按钮选择轨迹文件' : '点击左上角按钮选择文件夹' }}
       </div>
     </div>
 
     <div class="image-display-area" @wheel.prevent="handleWheel">
       <el-image
-          v-if="props.loader.currentFrameImageUrl.value"
+          v-if="props.loader.currentFrameImageUrl.value && !isTrajectoryModeBeforeResults"
           :key="props.loader.currentFrameImageUrl.value"
           :src="props.loader.currentFrameImageUrl.value"
           fit="contain"
           class="responsive-image"
           :style="{ transform: `scale(${props.zoomLevel / 100})` }"
       ></el-image>
-      <div v-if="!props.loader.currentFrameImageUrl.value && !props.loader.isLoadingFrame.value" class="image-placeholder">
+      <div v-if="(!props.loader.currentFrameImageUrl.value || isTrajectoryModeBeforeResults) && !props.loader.isLoadingFrame.value" class="image-placeholder">
         {{ placeholderText }}
       </div>
       <div v-if="props.loader.isLoadingFrame.value" class="image-placeholder">加载中...</div>
@@ -50,14 +50,15 @@ import { computed } from 'vue';
 import { ElImage, ElButton, ElSlider } from 'element-plus';
 import { Upload, Delete, ZoomIn, ZoomOut, ArrowLeftBold, ArrowRightBold } from '@element-plus/icons-vue';
 
-// 接收 loader 实例作为 prop
 const props = defineProps({
-  loader: { type: Object, required: true }, // 从 Orchestrator 传入的 useMultiFrameLoader 实例
+  loader: { type: Object, required: true },
   zoomLevel: { type: Number, default: 100 },
   imageRows: { type: Number, required: true },
   imageCols: { type: Number, required: true },
   actualResultFrameCount: { type: Number, default: 0 },
-  currentResultFrameIndex: { type: Number, default: -1 }
+  currentResultFrameIndex: { type: Number, default: -1 },
+  isTrajectoryMode: { type: Boolean, default: false },
+  trajectoryFile: { type: Object, default: null }
 });
 
 const emit = defineEmits([
@@ -68,10 +69,12 @@ const emit = defineEmits([
   'update:currentResultFrameIndex'
 ]);
 
-// --- 所有计算属性都基于 props.loader 或其他 props ---
-
 const isInResultsMode = computed(() => props.actualResultFrameCount > 0);
-const isAnyFrameLoaded = computed(() => props.loader.totalFrames.value > 0 || props.actualResultFrameCount > 0);
+const isAnyFrameLoaded = computed(() =>
+    props.loader.totalFrames.value > 0 ||
+    props.actualResultFrameCount > 0 ||
+    (props.isTrajectoryMode && !!props.trajectoryFile)
+);
 
 const navigationTotalFrames = computed(() =>
     isInResultsMode.value ? props.actualResultFrameCount : props.loader.totalFrames.value
@@ -81,28 +84,34 @@ const currentNavigationIndex = computed(() =>
     isInResultsMode.value ? props.currentResultFrameIndex : props.loader.currentIndex.value
 );
 
+const isTrajectoryModeBeforeResults = computed(() =>
+    props.isTrajectoryMode && props.actualResultFrameCount === 0
+);
+
 const navControlsVisible = computed(() => navigationTotalFrames.value > 0);
 const isNavigationDisabled = computed(() => !isInResultsMode.value && props.loader.isLoadingFrame.value);
 
 const isAnyFrameDisplayable = computed(() => {
   if (isInResultsMode.value) return props.actualResultFrameCount > 0;
+  if (props.isTrajectoryMode) return false;
   return !!props.loader.currentFrameImageUrl.value && !props.loader.isLoadingFrame.value;
 });
 
 const navigationFrameIndicatorText = computed(() => {
   if (navigationTotalFrames.value === 0) return '无帧';
-  const prefix = isInResultsMode.value ? '结果: ' : '预览: ';
+  const prefix = (isInResultsMode.value || props.isTrajectoryMode) ? '结果: ' : '预览: ';
   const displayIndex = currentNavigationIndex.value >= 0 ? currentNavigationIndex.value + 1 : 1;
   return `${prefix}${displayIndex} / ${navigationTotalFrames.value}`;
 });
 
 const placeholderText = computed(() => {
-  if (props.loader.totalFrames.value > 0) return '使用导航查看预览';
   if (props.actualResultFrameCount > 0) return '结果已生成，请使用导航查看';
+  if (props.loader.totalFrames.value > 0) return '使用导航查看预览';
+  if (props.isTrajectoryMode && props.trajectoryFile) return '轨迹文件已加载，请点击分析';
+  if (props.isTrajectoryMode) return '点击左上角按钮选择轨迹文件';
   return '选择文件夹以预览图像';
 });
 
-// 【新增】处理鼠标滚轮事件的函数
 function handleWheel(event) {
   if (event.deltaY < 0) {
     emit('zoom-in');
@@ -111,7 +120,6 @@ function handleWheel(event) {
   }
 }
 
-// --- 直接调用 props.loader 或 emit 事件 ---
 function handleSliderChange(newIndex) {
   if (isInResultsMode.value) {
     emit('update:currentResultFrameIndex', newIndex);

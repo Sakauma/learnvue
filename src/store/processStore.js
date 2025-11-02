@@ -37,8 +37,6 @@ export const useProcessStore = defineStore('process', {
         imageCols: 512,
         /** @type {string} 选择的图像数据精度 (例如 'float64') */
         selectedPrecision: 'float64',
-        // /** @type {string} 用户在UI中手动输入的文件夹路径（多帧模式） */
-        // manualFolderPath: '',
 
         /** @type {string} 卫星型号 ('H' 或 'G') */
         satelliteType: 'H',
@@ -50,11 +48,11 @@ export const useProcessStore = defineStore('process', {
         trajectoryEntry: '1001',
 
         /** @type {File | null} 单帧模式下上传的原始文件对象 */
-        singleFrameFile: null, // <-- 保留，但不再使用
+        singleFrameFile: null,
         /** @type {string} 单帧模式下上传文件的MD5校验值 */
-        singleFrameFileMD5: '', // <-- 保留，但不再使用
+        singleFrameFileMD5: '',
         /** @type {object | null} 单帧模式下的裁剪坐标 */
-        cropCoordinates: null, // <-- 保留，但不再使用
+        cropCoordinates: null,
         /** 用于存储待上传文件的 state */
         multiFrameFiles: [],
 
@@ -101,16 +99,15 @@ export const useProcessStore = defineStore('process', {
         canInferInCurrentMode: (state) => {
             if (!state.selectedSpecificAlgorithm) return false; // 必须选择一个算法
 
-            // <--- 修改：新的判断逻辑
             if (state.selectedMode === 'manual') {
-                // 手动模式下，必须有图像文件和轨迹文件
+                // 手动模式下，必须手动选择图像文件和轨迹文件
                 return state.multiFrameFiles.length > 0 && !!state.trajectoryFile;
             }
             if (state.selectedMode === 'automatic') {
                 // TODO: 自动模式的逻辑
                 return false;
             }
-            return false; // 移除旧的单帧逻辑
+            return false;
         },
     },
 
@@ -132,29 +129,8 @@ export const useProcessStore = defineStore('process', {
             if (newMode === 'manual') modeName = '手动模式';
             if (newMode === 'automatic') modeName = '自动模式';
 
-            // <--- 修改：重置所有状态，移除单帧/多帧的区分
             this.resetAllState();
             notifications.showNotification(`模式已切换为: ${modeName}。`);
-        },
-
-        /**
-         * @description 废弃
-         * @description 设置单帧模式下的文件及其MD5值。
-         * @param {File} file - 文件对象。
-         * @param {string} md5 - 文件的MD5哈希值。
-         */
-        setSingleFrameFile(file, md5) {
-            this.singleFrameFile = file;
-            this.singleFrameFileMD5 = md5;
-        },
-
-        /**
-         * @description 废弃
-         * @description 保存单帧模式下的图像裁剪坐标。
-         * @param {object} coords - 包含 x, y, width, height 的坐标对象。
-         */
-        setCropCoordinates(coords) {
-            this.cropCoordinates = coords;
         },
 
         setMultiFrameFiles(files) {
@@ -181,7 +157,6 @@ export const useProcessStore = defineStore('process', {
             this.singleFrameFile = null;
             this.singleFrameFileMD5 = '';
             this.cropCoordinates = null;
-            // this.allFeaturesData = null; // allFeaturesData 在 resetMultiFrameData 中重置
             // notifications.showNotification('单帧图像及数据已清除。');
         },
 
@@ -190,12 +165,12 @@ export const useProcessStore = defineStore('process', {
          */
         resetMultiFrameData() {
             this.multiFrameFiles = [];
-            this.trajectoryFile = null; // <--- 轨迹文件也应在此重置
+            this.trajectoryFile = null;
             this.resultFolderPathFromApi = '';
             this.resultFilesFromApi = null;
             this.currentMultiFrameIndex = -1;
             this.allFeaturesData = null;
-            notifications.showNotification('所有预览和结果已清除。'); // <--- 修改提示
+            notifications.showNotification('所有预览和结果已清除。');
         },
 
         /**
@@ -209,47 +184,6 @@ export const useProcessStore = defineStore('process', {
         },
 
         // --- 核心业务流程 Actions ---
-
-        /**
-         * @description 废弃
-         * @description 执行单帧图像识别的异步操作。
-         * @returns {Promise<{success: boolean, resultImage?: string | null, textResults?: string}>} 返回一个包含操作结果的对象。
-         */
-        async inferSingleFrame(abortSignal) {
-            if (!this.canInferInCurrentMode) return { success: false };
-            this.isLoading = true;
-            this.allFeaturesData = null;
-
-            // 调用外部 handler 执行实际的 API 请求
-            const result = await inferenceHandler.performInference(
-                this.singleFrameFile,
-                this.singleFrameFileMD5,
-                this.selectedSpecificAlgorithm,
-                this.imageRows,
-                this.imageCols,
-                this.cropCoordinates,
-                abortSignal
-            );
-
-            this.isLoading = false;
-
-            if (result.success) {
-                if (result.newChartValues?.length > 0) {
-                    // TODO: 单帧模式下的图表数据结构不完整，等待后续算法开发完全后在此处修改
-                    this.allFeaturesData = { "variance": result.newChartValues };
-                } else {
-                    notifications.showNotification('单帧识别成功，但未返回图表数据。', 2000);
-                }
-                // 成功后，返回格式化的结果给调用方 (Orchestrator)
-                return {
-                    success: true,
-                    resultImage: result.data.processedImage ? `data:image/png;base64,${result.data.processedImage}` : null,
-                    textResults: result.data.message || '识别成功'
-                };
-            }
-            return { success: false };
-        },
-
         /**
          * @description 执行多帧（文件夹）识别的异步操作。
          */
@@ -263,12 +197,11 @@ export const useProcessStore = defineStore('process', {
             this.currentMultiFrameIndex = -1;
 
             let result;
-            // <--- 修改：更新的业务逻辑
             if (this.selectedMode === 'manual') {
                 result = await inferenceHandler.performMultiFrameInference(
                     this.multiFrameFiles,
                     this.selectedSpecificAlgorithm,
-                    2,       // mode = 2 (固定为2，代表轨迹+图像)
+                    2,
                     this.trajectoryFile, // trackFile
                     abortSignal
                 );

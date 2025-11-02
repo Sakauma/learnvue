@@ -24,6 +24,18 @@
       </div>
 
       <div class="frame-navigation-controls" v-if="navControlsVisible">
+        <el-button class="nav-btn" :icon="ArrowLeftBold" @click="navigateFrames(-1)" :disabled="isNavigationDisabled || currentNavigationIndex <= 0"></el-button>
+        <el-slider
+            class="frame-slider"
+            :model-value="currentNavigationIndex"
+            @update:modelValue="handleSliderChange"
+            :min="0"
+            :max="navigationTotalFrames > 0 ? navigationTotalFrames - 1 : 0"
+            :disabled="isNavigationDisabled || navigationTotalFrames <= 1"
+            :format-tooltip="formatNavigationSliderTooltip"
+        ></el-slider>
+        <el-button class="nav-btn" :icon="ArrowRightBold" @click="navigateFrames(1)" :disabled="isNavigationDisabled || currentNavigationIndex >= navigationTotalFrames - 1"></el-button>
+        <span class="frame-indicator">{{ navigationFrameIndicatorText }}</span>
       </div>
       <div v-else class="frame-navigation-controls no-frames-placeholder">
         {{ placeholderText }}
@@ -46,42 +58,6 @@
     </div>
   </div>
 </template>
-
-<!--      <div class="frame-navigation-controls" v-if="navControlsVisible">-->
-<!--        <el-button class="nav-btn" :icon="ArrowLeftBold" @click="navigateFrames(-1)" :disabled="isNavigationDisabled || currentNavigationIndex <= 0"></el-button>-->
-<!--        <el-slider-->
-<!--            class="frame-slider"-->
-<!--            :model-value="currentNavigationIndex"-->
-<!--            @update:modelValue="handleSliderChange"-->
-<!--            :min="0"-->
-<!--            :max="navigationTotalFrames > 0 ? navigationTotalFrames - 1 : 0"-->
-<!--            :disabled="isNavigationDisabled || navigationTotalFrames <= 1"-->
-<!--            :format-tooltip="formatNavigationSliderTooltip"-->
-<!--        ></el-slider>-->
-<!--        <el-button class="nav-btn" :icon="ArrowRightBold" @click="navigateFrames(1)" :disabled="isNavigationDisabled || currentNavigationIndex >= navigationTotalFrames - 1"></el-button>-->
-<!--        <span class="frame-indicator">{{ navigationFrameIndicatorText }}</span>-->
-<!--      </div>-->
-<!--      <div v-else class="frame-navigation-controls no-frames-placeholder">-->
-<!--        {{ props.isTrajectoryMode ? '点击左上角按钮选择轨迹文件' : '点击左上角按钮选择文件夹' }}-->
-<!--      </div>-->
-<!--    </div>-->
-
-<!--    <div class="image-display-area" @wheel.prevent="handleWheel">-->
-<!--      <el-image-->
-<!--          v-if="props.loader.currentFrameImageUrl.value && !isTrajectoryModeBeforeResults"-->
-<!--          :key="props.loader.currentFrameImageUrl.value"-->
-<!--          :src="props.loader.currentFrameImageUrl.value"-->
-<!--          fit="contain"-->
-<!--          class="responsive-image"-->
-<!--          :style="{ transform: `scale(${props.zoomLevel / 100})` }"-->
-<!--      ></el-image>-->
-<!--      <div v-if="(!props.loader.currentFrameImageUrl.value || isTrajectoryModeBeforeResults) && !props.loader.isLoadingFrame.value" class="image-placeholder">-->
-<!--        {{ placeholderText }}-->
-<!--      </div>-->
-<!--      <div v-if="props.loader.isLoadingFrame.value" class="image-placeholder">加载中...</div>-->
-<!--    </div>-->
-<!--  </div>-->
-<!--</template>-->
 
 <script setup>
 import { computed } from 'vue';
@@ -123,22 +99,16 @@ const currentNavigationIndex = computed(() =>
     isInResultsMode.value ? props.currentResultFrameIndex : props.loader.currentIndex.value
 );
 
-// const isTrajectoryModeBeforeResults = computed(() =>
-//     props.isTrajectoryMode && props.actualResultFrameCount === 0
-// );
-
 const navControlsVisible = computed(() => navigationTotalFrames.value > 0);
 const isNavigationDisabled = computed(() => !isInResultsMode.value && props.loader.isLoadingFrame.value);
 
 const isAnyFrameDisplayable = computed(() => {
   if (isInResultsMode.value) return props.actualResultFrameCount > 0;
-  // <--- 修改：移除 isTrajectoryMode 检查
   return !!props.loader.currentFrameImageUrl.value && !props.loader.isLoadingFrame.value;
 });
 
 const navigationFrameIndicatorText = computed(() => {
   if (navigationTotalFrames.value === 0) return '无帧';
-  // <--- 修改：简化 prefix
   const prefix = isInResultsMode.value ? '结果: ' : '预览: ';
   const displayIndex = currentNavigationIndex.value >= 0 ? currentNavigationIndex.value + 1 : 1;
   return `${prefix}${displayIndex} / ${navigationTotalFrames.value}`;
@@ -149,7 +119,7 @@ const placeholderText = computed(() => {
   if (props.loader.totalFrames.value > 0 && !props.trajectoryFile) return '请加载轨迹文件';
   if (props.loader.totalFrames.value > 0 && props.trajectoryFile) return '文件已加载，请点击分析';
   if (props.trajectoryFile) return '请加载图像文件夹';
-  return '请选择图像文件夹和轨迹文件'; // <--- 修改
+  return '请选择图像文件夹和轨迹文件';
 });
 
 function handleWheel(event) {

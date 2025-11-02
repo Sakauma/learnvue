@@ -3,41 +3,43 @@
   <div class="multi-frame-system-wrapper">
     <div class="controls-bar-area">
       <div class="common-controls">
-        <el-button class="bar-button" :icon="Upload" :title="props.isTrajectoryMode ? '选择轨迹文件' : '选择文件夹'" @click="$emit('request-folder-select')":disabled="props.loader.isProcessingList.value"></el-button>
+        <el-button
+            class="bar-button"
+            :icon="Upload"
+            title="选择图像文件夹"
+            @click="$emit('request-folder-select')"
+            :disabled="props.loader.isProcessingList.value">
+        </el-button>
+        <el-button
+            class="bar-button"
+            :icon="DocumentAdd"
+            title="选择轨迹文件"
+            @click="$emit('request-trajectory-select')"
+            :disabled="props.loader.isProcessingList.value"
+            :type="trajectoryFile ? 'success' : ''">
+        </el-button>
         <el-button class="bar-button" :icon="Delete" title="清除所有帧" @click="handleDeleteAllFrames" :disabled="!isAnyFrameLoaded"></el-button>
         <el-button class="bar-button" :icon="ZoomIn" title="放大" @click="$emit('zoom-in')" :disabled="!isAnyFrameDisplayable"></el-button>
         <el-button class="bar-button" :icon="ZoomOut" title="缩小" @click="$emit('zoom-out')" :disabled="!isAnyFrameDisplayable"></el-button>
       </div>
 
       <div class="frame-navigation-controls" v-if="navControlsVisible">
-        <el-button class="nav-btn" :icon="ArrowLeftBold" @click="navigateFrames(-1)" :disabled="isNavigationDisabled || currentNavigationIndex <= 0"></el-button>
-        <el-slider
-            class="frame-slider"
-            :model-value="currentNavigationIndex"
-            @update:modelValue="handleSliderChange"
-            :min="0"
-            :max="navigationTotalFrames > 0 ? navigationTotalFrames - 1 : 0"
-            :disabled="isNavigationDisabled || navigationTotalFrames <= 1"
-            :format-tooltip="formatNavigationSliderTooltip"
-        ></el-slider>
-        <el-button class="nav-btn" :icon="ArrowRightBold" @click="navigateFrames(1)" :disabled="isNavigationDisabled || currentNavigationIndex >= navigationTotalFrames - 1"></el-button>
-        <span class="frame-indicator">{{ navigationFrameIndicatorText }}</span>
       </div>
       <div v-else class="frame-navigation-controls no-frames-placeholder">
-        {{ props.isTrajectoryMode ? '点击左上角按钮选择轨迹文件' : '点击左上角按钮选择文件夹' }}
+        {{ placeholderText }}
       </div>
     </div>
 
     <div class="image-display-area" @wheel.prevent="handleWheel">
       <el-image
-          v-if="props.loader.currentFrameImageUrl.value && !isTrajectoryModeBeforeResults"
+          v-if="props.loader.currentFrameImageUrl.value"
           :key="props.loader.currentFrameImageUrl.value"
           :src="props.loader.currentFrameImageUrl.value"
           fit="contain"
           class="responsive-image"
           :style="{ transform: `scale(${props.zoomLevel / 100})` }"
       ></el-image>
-      <div v-if="(!props.loader.currentFrameImageUrl.value || isTrajectoryModeBeforeResults) && !props.loader.isLoadingFrame.value" class="image-placeholder">
+      <div v-if="!props.loader.currentFrameImageUrl.value && !props.loader.isLoadingFrame.value" class="image-placeholder">
         {{ placeholderText }}
       </div>
       <div v-if="props.loader.isLoadingFrame.value" class="image-placeholder">加载中...</div>
@@ -45,10 +47,46 @@
   </div>
 </template>
 
+<!--      <div class="frame-navigation-controls" v-if="navControlsVisible">-->
+<!--        <el-button class="nav-btn" :icon="ArrowLeftBold" @click="navigateFrames(-1)" :disabled="isNavigationDisabled || currentNavigationIndex <= 0"></el-button>-->
+<!--        <el-slider-->
+<!--            class="frame-slider"-->
+<!--            :model-value="currentNavigationIndex"-->
+<!--            @update:modelValue="handleSliderChange"-->
+<!--            :min="0"-->
+<!--            :max="navigationTotalFrames > 0 ? navigationTotalFrames - 1 : 0"-->
+<!--            :disabled="isNavigationDisabled || navigationTotalFrames <= 1"-->
+<!--            :format-tooltip="formatNavigationSliderTooltip"-->
+<!--        ></el-slider>-->
+<!--        <el-button class="nav-btn" :icon="ArrowRightBold" @click="navigateFrames(1)" :disabled="isNavigationDisabled || currentNavigationIndex >= navigationTotalFrames - 1"></el-button>-->
+<!--        <span class="frame-indicator">{{ navigationFrameIndicatorText }}</span>-->
+<!--      </div>-->
+<!--      <div v-else class="frame-navigation-controls no-frames-placeholder">-->
+<!--        {{ props.isTrajectoryMode ? '点击左上角按钮选择轨迹文件' : '点击左上角按钮选择文件夹' }}-->
+<!--      </div>-->
+<!--    </div>-->
+
+<!--    <div class="image-display-area" @wheel.prevent="handleWheel">-->
+<!--      <el-image-->
+<!--          v-if="props.loader.currentFrameImageUrl.value && !isTrajectoryModeBeforeResults"-->
+<!--          :key="props.loader.currentFrameImageUrl.value"-->
+<!--          :src="props.loader.currentFrameImageUrl.value"-->
+<!--          fit="contain"-->
+<!--          class="responsive-image"-->
+<!--          :style="{ transform: `scale(${props.zoomLevel / 100})` }"-->
+<!--      ></el-image>-->
+<!--      <div v-if="(!props.loader.currentFrameImageUrl.value || isTrajectoryModeBeforeResults) && !props.loader.isLoadingFrame.value" class="image-placeholder">-->
+<!--        {{ placeholderText }}-->
+<!--      </div>-->
+<!--      <div v-if="props.loader.isLoadingFrame.value" class="image-placeholder">加载中...</div>-->
+<!--    </div>-->
+<!--  </div>-->
+<!--</template>-->
+
 <script setup>
 import { computed } from 'vue';
 import { ElImage, ElButton, ElSlider } from 'element-plus';
-import { Upload, Delete, ZoomIn, ZoomOut, ArrowLeftBold, ArrowRightBold } from '@element-plus/icons-vue';
+import { Upload, Delete, ZoomIn, ZoomOut, ArrowLeftBold, ArrowRightBold, DocumentAdd} from '@element-plus/icons-vue';
 
 const props = defineProps({
   loader: { type: Object, required: true },
@@ -57,12 +95,13 @@ const props = defineProps({
   imageCols: { type: Number, required: true },
   actualResultFrameCount: { type: Number, default: 0 },
   currentResultFrameIndex: { type: Number, default: -1 },
-  isTrajectoryMode: { type: Boolean, default: false },
+  //isTrajectoryMode: { type: Boolean, default: false },
   trajectoryFile: { type: Object, default: null }
 });
 
 const emit = defineEmits([
   'request-folder-select',
+  'request-trajectory-select',
   'zoom-in',
   'zoom-out',
   'delete-all-frames',
@@ -73,7 +112,7 @@ const isInResultsMode = computed(() => props.actualResultFrameCount > 0);
 const isAnyFrameLoaded = computed(() =>
     props.loader.totalFrames.value > 0 ||
     props.actualResultFrameCount > 0 ||
-    (props.isTrajectoryMode && !!props.trajectoryFile)
+    !!props.trajectoryFile // <--- 修改
 );
 
 const navigationTotalFrames = computed(() =>
@@ -84,32 +123,33 @@ const currentNavigationIndex = computed(() =>
     isInResultsMode.value ? props.currentResultFrameIndex : props.loader.currentIndex.value
 );
 
-const isTrajectoryModeBeforeResults = computed(() =>
-    props.isTrajectoryMode && props.actualResultFrameCount === 0
-);
+// const isTrajectoryModeBeforeResults = computed(() =>
+//     props.isTrajectoryMode && props.actualResultFrameCount === 0
+// );
 
 const navControlsVisible = computed(() => navigationTotalFrames.value > 0);
 const isNavigationDisabled = computed(() => !isInResultsMode.value && props.loader.isLoadingFrame.value);
 
 const isAnyFrameDisplayable = computed(() => {
   if (isInResultsMode.value) return props.actualResultFrameCount > 0;
-  if (props.isTrajectoryMode) return false;
+  // <--- 修改：移除 isTrajectoryMode 检查
   return !!props.loader.currentFrameImageUrl.value && !props.loader.isLoadingFrame.value;
 });
 
 const navigationFrameIndicatorText = computed(() => {
   if (navigationTotalFrames.value === 0) return '无帧';
-  const prefix = (isInResultsMode.value || props.isTrajectoryMode) ? '结果: ' : '预览: ';
+  // <--- 修改：简化 prefix
+  const prefix = isInResultsMode.value ? '结果: ' : '预览: ';
   const displayIndex = currentNavigationIndex.value >= 0 ? currentNavigationIndex.value + 1 : 1;
   return `${prefix}${displayIndex} / ${navigationTotalFrames.value}`;
 });
 
 const placeholderText = computed(() => {
   if (props.actualResultFrameCount > 0) return '结果已生成，请使用导航查看';
-  if (props.loader.totalFrames.value > 0) return '使用导航查看预览';
-  if (props.isTrajectoryMode && props.trajectoryFile) return '轨迹文件已加载，请点击分析';
-  if (props.isTrajectoryMode) return '点击左上角按钮选择轨迹文件';
-  return '选择文件夹以预览图像';
+  if (props.loader.totalFrames.value > 0 && !props.trajectoryFile) return '请加载轨迹文件';
+  if (props.loader.totalFrames.value > 0 && props.trajectoryFile) return '文件已加载，请点击分析';
+  if (props.trajectoryFile) return '请加载图像文件夹';
+  return '请选择图像文件夹和轨迹文件'; // <--- 修改
 });
 
 function handleWheel(event) {
@@ -225,6 +265,13 @@ defineExpose({ syncPreviewFrame });
   background-color: #5a5a5a;
   color: #888;
   cursor: not-allowed;
+}
+
+.bar-button[type="success"] {
+  background-color: #67c23a; /* Element Plus 的 success 颜色 */
+}
+.bar-button[type="success"]:hover {
+  background-color: #85d661;
 }
 
 .frame-slider {

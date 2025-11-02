@@ -25,8 +25,8 @@ export const useProcessStore = defineStore('process', {
      * @returns {object} 包含所有状态的初始值的对象。
      */
     state: () => ({
-        /** @type {'singleFrame' | 'multiFrame'| 'gjMode'} 当前选择的处理模式 */
-        selectedMode: 'multiFrame',
+        /** @type {'manual' | 'automatic'} 当前选择的处理模式 */
+        selectedMode: 'manual',
         /** @type {string} 选择的算法大类 (例如 'classification', 'detection') */
         selectedAlgorithmType: '',
         /** @type {string} 选择的具体算法名称 */
@@ -50,13 +50,11 @@ export const useProcessStore = defineStore('process', {
         trajectoryEntry: '1001',
 
         /** @type {File | null} 单帧模式下上传的原始文件对象 */
-        singleFrameFile: null,
+        singleFrameFile: null, // <-- 保留，但不再使用
         /** @type {string} 单帧模式下上传文件的MD5校验值 */
-        singleFrameFileMD5: '',
+        singleFrameFileMD5: '', // <-- 保留，但不再使用
         /** @type {object | null} 单帧模式下的裁剪坐标 */
-        cropCoordinates: null,
-        // /** @type {string} 多帧模式下，最终确认用于识别的文件夹路径 */
-        // originalFolderPath: '',
+        cropCoordinates: null, // <-- 保留，但不再使用
         /** 用于存储待上传文件的 state */
         multiFrameFiles: [],
 
@@ -81,12 +79,11 @@ export const useProcessStore = defineStore('process', {
      */
     getters: {
         /**
-         * @description 判断当前是否为多帧处理模式。
+         * @description 判断当前是否为手动处理模式。
          * @param {object} state - 当前的 store state。
-         * @returns {boolean} 如果是多帧模式则返回 true。
+         * @returns {boolean} 如果是手动模式则返回 true。
          */
-        isMultiFrameMode: (state) =>
-            state.selectedMode === 'multiFrame' || state.selectedMode === 'gjMode',
+        isManualMode: (state) => state.selectedMode === 'manual', // <--- 修改：替换 isMultiFrameMode
 
         /**
          * @description 获取多帧结果的总数量。
@@ -94,7 +91,6 @@ export const useProcessStore = defineStore('process', {
          * @returns {number} 结果文件的数量。
          */
         numberOfResultFrames: (state) => state.resultFilesFromApi?.outputImageNames?.length || 0,
-
 
         uploadProgress: () => inferenceHandler.uploadProgress.value,
         /**
@@ -104,14 +100,17 @@ export const useProcessStore = defineStore('process', {
          */
         canInferInCurrentMode: (state) => {
             if (!state.selectedSpecificAlgorithm) return false; // 必须选择一个算法
-            if (state.selectedMode === 'gjMode') {
-                return !!state.trajectoryFile; // 轨迹模式下必须有轨迹文件
+
+            // <--- 修改：新的判断逻辑
+            if (state.selectedMode === 'manual') {
+                // 手动模式下，必须有图像文件和轨迹文件
+                return state.multiFrameFiles.length > 0 && !!state.trajectoryFile;
             }
-            if (state.selectedMode === 'multiFrame') {
-                return state.multiFrameFiles.length > 0;
-                //return !!state.originalFolderPath.trim(); // 多帧模式下必须有确认的文件夹路径
+            if (state.selectedMode === 'automatic') {
+                // TODO: 自动模式的逻辑
+                return false;
             }
-            return !!state.singleFrameFile; // 单帧模式下必须有上传的文件
+            return false; // 移除旧的单帧逻辑
         },
     },
 
@@ -124,20 +123,22 @@ export const useProcessStore = defineStore('process', {
 
         /**
          * @description 设置当前的 işlem modu。
-         * @param {'singleFrame' | 'multiFrame'| 'gjMode'} newMode - 要设置的新模式。
+         * @param {'manual' | 'automatic'} newMode - 要设置的新模式。
          */
         setMode(newMode) {
             if (this.selectedMode === newMode) return;
             this.selectedMode = newMode;
             let modeName = '未知模式';
-            if (newMode === 'singleFrame') modeName = '单帧模式';
-            if (newMode === 'multiFrame') modeName = '多帧模式';
-            if (newMode === 'gjMode') modeName = 'GJ 模式';
+            if (newMode === 'manual') modeName = '手动模式';
+            if (newMode === 'automatic') modeName = '自动模式';
+
+            // <--- 修改：重置所有状态，移除单帧/多帧的区分
             this.resetAllState();
             notifications.showNotification(`模式已切换为: ${modeName}。`);
         },
 
         /**
+         * @description 废弃
          * @description 设置单帧模式下的文件及其MD5值。
          * @param {File} file - 文件对象。
          * @param {string} md5 - 文件的MD5哈希值。
@@ -147,19 +148,20 @@ export const useProcessStore = defineStore('process', {
             this.singleFrameFileMD5 = md5;
         },
 
-        setMultiFrameFiles(files) {
-            this.multiFrameFiles = files;
-            if (files.length > 0) {
-                notifications.showNotification(`已加载 ${files.length} 个文件准备识别。`);
-            }
-        },
-
         /**
+         * @description 废弃
          * @description 保存单帧模式下的图像裁剪坐标。
          * @param {object} coords - 包含 x, y, width, height 的坐标对象。
          */
         setCropCoordinates(coords) {
             this.cropCoordinates = coords;
+        },
+
+        setMultiFrameFiles(files) {
+            this.multiFrameFiles = files;
+            if (files.length > 0) {
+                notifications.showNotification(`已加载 ${files.length} 个文件准备识别。`);
+            }
         },
 
         setTrajectoryFile(file) {
@@ -172,14 +174,15 @@ export const useProcessStore = defineStore('process', {
         },
 
         /**
+         * @description 废弃
          * @description 重置所有与单帧模式相关的状态。
          */
         resetSingleFrameData() {
             this.singleFrameFile = null;
             this.singleFrameFileMD5 = '';
             this.cropCoordinates = null;
-            this.allFeaturesData = null;
-            //notifications.showNotification('单帧图像及数据已清除。');
+            // this.allFeaturesData = null; // allFeaturesData 在 resetMultiFrameData 中重置
+            // notifications.showNotification('单帧图像及数据已清除。');
         },
 
         /**
@@ -187,21 +190,19 @@ export const useProcessStore = defineStore('process', {
          */
         resetMultiFrameData() {
             this.multiFrameFiles = [];
-            //this.manualFolderPath = '';
-            //this.originalFolderPath = '';
-            this.trajectoryFile = null;
+            this.trajectoryFile = null; // <--- 轨迹文件也应在此重置
             this.resultFolderPathFromApi = '';
             this.resultFilesFromApi = null;
             this.currentMultiFrameIndex = -1;
             this.allFeaturesData = null;
-            notifications.showNotification('所有多帧预览和结果已清除。');
+            notifications.showNotification('所有预览和结果已清除。'); // <--- 修改提示
         },
 
         /**
          * @description 重置所有模式的状态，通常在模式切换时调用。
          */
         resetAllState() {
-            this.resetSingleFrameData();
+            this.resetSingleFrameData(); // <-- 这个也调用，以防万一
             this.resetMultiFrameData();
             this.isLoading = false;
             //notifications.showNotification('界面数据已经清空。');
@@ -210,6 +211,7 @@ export const useProcessStore = defineStore('process', {
         // --- 核心业务流程 Actions ---
 
         /**
+         * @description 废弃
          * @description 执行单帧图像识别的异步操作。
          * @returns {Promise<{success: boolean, resultImage?: string | null, textResults?: string}>} 返回一个包含操作结果的对象。
          */
@@ -261,22 +263,20 @@ export const useProcessStore = defineStore('process', {
             this.currentMultiFrameIndex = -1;
 
             let result;
-            if (this.selectedMode === 'multiFrame') {
+            // <--- 修改：更新的业务逻辑
+            if (this.selectedMode === 'manual') {
                 result = await inferenceHandler.performMultiFrameInference(
                     this.multiFrameFiles,
                     this.selectedSpecificAlgorithm,
-                    1,       // mode = 1 (多帧)
-                    null,    // trackFile = null
-                    abortSignal
-                );
-            } else if (this.selectedMode === 'gjMode') {
-                result = await inferenceHandler.performMultiFrameInference(
-                    [],      // files = 空数组
-                    this.selectedSpecificAlgorithm,
-                    2,       // mode = 2 (轨迹)
+                    2,       // mode = 2 (固定为2，代表轨迹+图像)
                     this.trajectoryFile, // trackFile
                     abortSignal
                 );
+            } else if (this.selectedMode === 'automatic') {
+                // TODO: 自动模式的调用
+                notifications.showNotification(`❌ 自动模式尚未实现。`);
+                this.isLoading = false;
+                return;
             } else {
                 notifications.showNotification(`❌ 未知的处理模式: ${this.selectedMode}`);
                 this.isLoading = false;

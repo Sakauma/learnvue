@@ -163,13 +163,23 @@ export function useMultiFrameLoader(showNotificationCallback) {
         }
         isProcessingList.value = true;
 
-        clearFrames();
+        //clearFrames();
         console.log('[loader] 开始处理选择的文件...');
 
-        if (rows <= 0 || cols <= 0) {
-            showNotificationCallback(`❌ 请提供有效的图像行数和列数。`);
+        // if (rows <= 0 || cols <= 0) {
+        //     showNotificationCallback(`❌ 请提供有效的图像行数和列数。`);
+        //     return;
+        // }
+        // --- 修正：1. 先验证参数 ---
+        if (!rows || rows <= 0 || !cols || cols <= 0) {
+            showNotificationCallback(`❌ 请提供有效的图像行数(当前: ${rows})和列数(当前: ${cols})。`);
+            isProcessingList.value = false; // <--- 修正：2. 确保在退出前重置状态
             return;
         }
+
+        // --- 修正：3. 验证通过后，再清空 ---
+        clearFrames();
+
         currentImageRows.value = rows;
         currentImageCols.value = cols;
 

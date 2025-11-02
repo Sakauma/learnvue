@@ -7,7 +7,7 @@ import { storeToRefs } from 'pinia';
 // 导入所有需要的其他 Composables
 import { useMultiFrameResult } from './useMultiFrameResult.js';
 import { useNotifications } from './useNotifications.js';
-import { useImageHandler } from './useImageHandler.js';
+//import { useImageHandler } from './useImageHandler.js';
 import { useSseLogs } from './useSseLogs.js';
 import { useZoom } from "./useZoom.js";
 import { useDataProduct } from './useDataProduct.js';
@@ -19,13 +19,12 @@ import {useMultiFrameLoader} from "./useMultiFrameLoader.js";
  * 事件处理和派生状态。其主要目的是让主视图组件 (ImgProcess.vue) 保持纯净，
  * 只负责UI渲染和将事件绑定到此处的处理函数，从而实现视图与逻辑的深度分离。
  *
- * @param {import('vue').Ref} mainViewerRef - 对 MainImageViewer 组件的模板引用 (ref)，用于调用其内部方法（如确认裁剪）。
  * @param {import('vue').Ref} multiFrameSystemRef - 对 MultiFrameSystem 组件的模板引用 (ref)，用于调用其方法（如加载、清空、同步帧）。
  * @param {import('vue').Ref} dataColumnRef - 对 DataColumn 组件的模板引用 (ref)，用于调用其方法（如清空报告）。
  * @param {import('vue').Ref} folderInputRef - 对隐藏的文件夹输入框元素的模板引用 (ref)，用于程序化地触发文件选择对话框。
  * @returns {object} 返回一个包含所有需要暴露给视图组件的状态和方法的对象。
  */
-export function useProcessOrchestrator(mainViewerRef, multiFrameSystemRef, dataColumnRef, folderInputRef) {
+export function useProcessOrchestrator(multiFrameSystemRef, dataColumnRef, folderInputRef) {
 
     // --- 1. 初始化核心模块 ---
     /**
@@ -47,14 +46,13 @@ export function useProcessOrchestrator(mainViewerRef, multiFrameSystemRef, dataC
      * 使用 storeToRefs 可以确保所有解构出的变量都是响应式的 ref。
      */
     const {
-        selectedMode, // 当前选择的处理模式 ('singleFrame' 或 'multiFrame')
-        isMultiFrameMode, // 计算属性，判断当前是否为多帧模式
-        selectedAlgorithmType, // 选择的算法大类
-        selectedSpecificAlgorithm, // 选择的具体算法名称
-        imageRows, // 图像行数
-        imageCols, // 图像列数
-        selectedPrecision, // 选择的图像精度
-        //manualFolderPath, // 用户手动输入的文件夹路径
+        selectedMode, // 当前选择的处理模式 ('manual' 或 'automatic')
+        isManualMode, // <--- 修改：使用新的 getter
+        selectedAlgorithmType,
+        selectedSpecificAlgorithm,
+        imageRows,
+        imageCols,
+        selectedPrecision,
         trajectoryFile,
 
         satelliteType,
@@ -75,14 +73,18 @@ export function useProcessOrchestrator(mainViewerRef, multiFrameSystemRef, dataC
      * @description 缩放功能 Composable，提供缩放级别状态和操作方法。
      */
     const { zoomLevel, zoomIn, zoomOut } = useZoom();
+
     /**
+     * @description 废弃
      * @description 单帧图像处理 Composable，封装了文件选择、MD5计算和预览图生成逻辑。
      */
-    const singleFrameImageHandler = useImageHandler(notifications.showNotification);
+    //const singleFrameImageHandler = useImageHandler(notifications.showNotification);
+
     /**
      * @description SSE (Server-Sent Events) 日志 Composable，用于从后端接收实时日志。
      */
     const { logs: parsedLogs, connectionStatus, connectionAttempts, connect, disconnect, clearLogs } = useSseLogs('/sse/logs');
+
     /**
      * @description 多帧结果图像 URL 管理 Composable。
      * 根据结果路径和当前帧索引，动态计算感兴趣区域（ROI）和结果图像的完整 URL。
@@ -103,26 +105,30 @@ export function useProcessOrchestrator(mainViewerRef, multiFrameSystemRef, dataC
     const multiFramePreviewLoader = useMultiFrameLoader(notifications.showNotification);
 
     /**
+     * @description 废弃
      * @description 存储附加图像卡片的数组（例如裁剪后的图像、识别结果图）。
      * 这是单帧模式下右侧结果展示区的唯一数据源。
      * @type {import('vue').Ref<Array<{id: string, url: string, label: string}>>}
      */
-    const additionalImages = ref([]);
+    //const additionalImages = ref([]);
 
     /**
+     * @description 废弃
      * @description 控制单帧模式下裁剪功能是否激活的响应式状态。
      * @type {import('vue').Ref<boolean>}
      */
-    const isCroppingActive = ref(false);
+    //const isCroppingActive = ref(false);
 
     // 控制参数设置弹窗的可见性
     const isSettingsDialogVisible = ref(false);
-
     const isVersionDialogVisible = ref(false);
+
+    // <--- 新增：用于区分文件输入框的用途
+    const fileInputMode = ref('images'); // 'images' 或 'trajectory'
 
     // 用于传递给弹窗的组合设置对象
     const parameterSettings = computed(() => ({
-        selectedMode: selectedMode.value,
+        selectedMode: selectedMode.value, // <-- 会自动更新为 'manual'
         algorithmType: selectedAlgorithmType.value,
         specificAlgorithm: selectedSpecificAlgorithm.value,
         imageRows: imageRows.value,
@@ -136,13 +142,12 @@ export function useProcessOrchestrator(mainViewerRef, multiFrameSystemRef, dataC
 
     // 保存设置的回调函数
     const handleSaveSettings = (newSettings) => {
-        store.setMode(newSettings.selectedMode);
+        store.setMode(newSettings.selectedMode); // <-- 会使用 'manual'
         store.selectedAlgorithmType = newSettings.algorithmType;
         store.selectedSpecificAlgorithm = newSettings.specificAlgorithm;
         store.imageRows = newSettings.imageRows;
         store.imageCols = newSettings.imageCols;
         store.selectedPrecision = newSettings.selectedPrecision;
-        // 保存新字段
         store.satelliteType = newSettings.satelliteType;
         store.satelliteModel = newSettings.satelliteModel;
         store.waveType = newSettings.waveType;
@@ -156,18 +161,17 @@ export function useProcessOrchestrator(mainViewerRef, multiFrameSystemRef, dataC
      * @returns {number} 结果帧的数量。
      */
     const numberOfResultFrames = computed(() => resultFilesFromApi.value?.outputImageNames?.length || 0);
-
-    const isTrajectoryMode = computed(() => selectedMode.value === 'gjMode');
+    //const isTrajectoryMode = computed(() => selectedMode.value === 'gjMode');
 
     // --- 4. 事件处理函数 (Methods) ---
     /**
-     * @description 处理模式切换（单帧/多帧）。
-     * @param {'singleFrame' | 'multiFrame'} newMode - 新的模式。
+     * @description 处理模式切换（手动/自动）。
+     * @param {'manual' | 'automatic'} newMode - 新的模式。
      */
     const handleModeChange = (newMode) => {
         store.setMode(newMode);
-        isCroppingActive.value = false; // 切换模式时重置裁剪状态
-        additionalImages.value = []; // 清空旧模式下的结果图像
+        // <--- 移除：isCroppingActive.value = false;
+        // <--- 移除：additionalImages.value = [];
     };
 
     // 创建一个 ref 来持有 AbortController 实例
@@ -175,34 +179,50 @@ export function useProcessOrchestrator(mainViewerRef, multiFrameSystemRef, dataC
 
     /**
      * @description 执行核心的识别（推断）操作。
-     * 会根据当前模式（单帧/多帧）调用 store 中对应的 action。
      */
+    // const handleInfer = async () => {
+    //     if (imageRows.value <= 0 || imageCols.value <= 0) {
+    //         notifications.showNotification('请输入有效的图像行数和列数。');
+    //         return;
+    //     }
+    //
+    //     // 在发起请求前，创建一个新的 AbortController
+    //     activeRequestController.value = new AbortController();
+    //
+    //     if (isMultiFrameMode.value) {
+    //         await store.inferMultiFrame(activeRequestController.value.signal);
+    //         // 注意：多帧模式的结果展示不通过 additionalImages，而是由 MultiFrameSystem 内部处理
+    //     } else {
+    //         // 等待 store action 返回结果，并直接更新 additionalImages
+    //         const result =  await store.inferSingleFrame(activeRequestController.value.signal);
+    //         if (result && result.success && result.resultImage) {
+    //             additionalImages.value.push({
+    //                 id: `result-${Date.now()}`,
+    //                 url: result.resultImage,
+    //                 label: '结果图像'
+    //             });
+    //         }
+    //     }
+    //     // 请求完成后，清空 controller
+    //     activeRequestController.value = null;
+    // };
     const handleInfer = async () => {
-        if (imageRows.value <= 0 || imageCols.value <= 0) {
-            notifications.showNotification('请输入有效的图像行数和列数。');
-            return;
-        }
-
-        // 在发起请求前，创建一个新的 AbortController
-        activeRequestController.value = new AbortController();
-
-        if (isMultiFrameMode.value) {
-            await store.inferMultiFrame(activeRequestController.value.signal);
-            // 注意：多帧模式的结果展示不通过 additionalImages，而是由 MultiFrameSystem 内部处理
-        } else {
-            // 等待 store action 返回结果，并直接更新 additionalImages
-            const result =  await store.inferSingleFrame(activeRequestController.value.signal);
-            if (result && result.success && result.resultImage) {
-                additionalImages.value.push({
-                    id: `result-${Date.now()}`,
-                    url: result.resultImage,
-                    label: '结果图像'
-                });
+            if (imageRows.value <= 0 || imageCols.value <= 0) {
+                notifications.showNotification('请输入有效的图像行数和列数。');
+                return;
             }
-        }
-        // 请求完成后，清空 controller
-        activeRequestController.value = null;
-    };
+
+            activeRequestController.value = new AbortController();
+
+            // <--- 修改：只保留原 'isMultiFrameMode' 的逻辑
+            if (selectedMode.value === 'manual') {
+                await store.inferMultiFrame(activeRequestController.value.signal);
+            } else if (selectedMode.value === 'automatic') {
+                notifications.showNotification('自动模式尚未实现。');
+            }
+
+            activeRequestController.value = null;
+        };
 
     // 处理键盘事件的函数
     const handleKeyDown = (event) => {
@@ -214,84 +234,131 @@ export function useProcessOrchestrator(mainViewerRef, multiFrameSystemRef, dataC
     };
 
     /**
+     * @description 废弃
      * @description 从 MainImageViewer 组件接收用户上传的文件。
      * @param {File} file - 用户通过拖拽或点击上传的文件对象。
      */
-    const receiveFileFromMainViewer = async (file) => {
-        if (!file) return;
-        handleModeChange('singleFrame'); // 自动切换到单帧模式
-        // 使用 image handler 处理文件
-        await singleFrameImageHandler.handleFileSelected(file, imageRows.value, imageCols.value, selectedPrecision.value);
-        // 将处理后的文件和 MD5 保存到 store
-        store.setSingleFrameFile(singleFrameImageHandler.originalFile.value, singleFrameImageHandler.fileMD5.value);
-        additionalImages.value = []; // 上传新图片时，清空旧的结果
-    };
+    // const receiveFileFromMainViewer = async (file) => {
+    //     if (!file) return;
+    //     handleModeChange('singleFrame'); // 自动切换到单帧模式
+    //     // 使用 image handler 处理文件
+    //     await singleFrameImageHandler.handleFileSelected(file, imageRows.value, imageCols.value, selectedPrecision.value);
+    //     // 将处理后的文件和 MD5 保存到 store
+    //     store.setSingleFrameFile(singleFrameImageHandler.originalFile.value, singleFrameImageHandler.fileMD5.value);
+    //     additionalImages.value = []; // 上传新图片时，清空旧的结果
+    // };
 
     /**
+     * @description 废弃
      * @description 删除当前单帧图像及其所有相关数据。
      */
-    const handleDeleteSingleFrameImage = () => {
-        singleFrameImageHandler.deleteImage(); // 清空 handler 中的图像
-        store.resetSingleFrameData(); // 重置 store 中的单帧数据
-        isCroppingActive.value = false; // 关闭裁剪状态
-        additionalImages.value = []; // 清空附加图像结果
-    };
+    // const handleDeleteSingleFrameImage = () => {
+    //     singleFrameImageHandler.deleteImage(); // 清空 handler 中的图像
+    //     store.resetSingleFrameData(); // 重置 store 中的单帧数据
+    //     isCroppingActive.value = false; // 关闭裁剪状态
+    //     additionalImages.value = []; // 清空附加图像结果
+    // };
 
     /**
+     * @description 废弃
      * @description 切换单帧图像的裁剪模式。
      */
-    const toggleCropping = () => {
-        if (!singleFrameImageHandler.originalFile.value) {
-            notifications.showNotification('请先上传图像再进行裁剪。');
-            return;
-        }
-        isCroppingActive.value = !isCroppingActive.value;
-    };
+    // const toggleCropping = () => {
+    //     if (!singleFrameImageHandler.originalFile.value) {
+    //         notifications.showNotification('请先上传图像再进行裁剪。');
+    //         return;
+    //     }
+    //     isCroppingActive.value = !isCroppingActive.value;
+    // };
 
     /**
+     * @description 废弃
      * @description 触发 MainImageViewer 组件执行确认裁剪的操作。
      */
-    const handleConfirmCrop = () => {
-        if (mainViewerRef.value) {
-            mainViewerRef.value.confirmCrop();
-        }
-    };
+    // const handleConfirmCrop = () => {
+    //     if (mainViewerRef.value) {
+    //         mainViewerRef.value.confirmCrop();
+    //     }
+    // };
 
     /**
+     * @description 废弃
      * @description 接收 MainImageViewer 确认裁剪后发送的数据。
      * @param {object} payload - 包含裁剪后图像和坐标的对象。
      * @param {string} payload.croppedImageBase64 - 裁剪后图像的 Base64 编码。
      * @param {object} payload.coordinates - 裁剪区域的坐标。
      */
-    const onSingleFrameCropConfirmed = ({ croppedImageBase64, coordinates }) => {
-        // 将裁剪后的图像作为一个新的卡片添加到结果区
-        additionalImages.value.push({
-            id: `crop-${Date.now()}`,
-            url: croppedImageBase64,
-            label: '感兴趣区域'
-        });
-        store.setCropCoordinates(coordinates); // 将裁剪坐标保存到 store
-        isCroppingActive.value = false; // 关闭裁剪模式
-        notifications.showNotification('✅ 感兴趣区域已截取');
-    };
+    // const onSingleFrameCropConfirmed = ({ croppedImageBase64, coordinates }) => {
+    //     // 将裁剪后的图像作为一个新的卡片添加到结果区
+    //     additionalImages.value.push({
+    //         id: `crop-${Date.now()}`,
+    //         url: croppedImageBase64,
+    //         label: '感兴趣区域'
+    //     });
+    //     store.setCropCoordinates(coordinates); // 将裁剪坐标保存到 store
+    //     isCroppingActive.value = false; // 关闭裁剪模式
+    //     notifications.showNotification('✅ 感兴趣区域已截取');
+    // };
+    //
+    // const handleFolderSelectedViaDialog = (event) => {
+    //     const files = event.target.files;
+    //     if (!files || files.length === 0) return;
+    //
+    //     if (selectedMode.value === 'multiFrame') {
+    //         multiFramePreviewLoader.processSelectedFiles(files, imageRows.value, imageCols.value, selectedPrecision.value);
+    //
+    //     } else if (selectedMode.value === 'gjMode') {
+    //         const file = files[0];
+    //         store.setTrajectoryFile(file);
+    //     }
+    //     if (event.target) event.target.value = '';
+    // };
 
+    /**
+     * @description 统一的文件选择对话框回调
+     */
+    // const handleFolderSelectedViaDialog = (event) => {
+    //     const files = event.target.files;
+    //     if (!files || files.length === 0) return;
+    //
+    //     // <--- 修改：根据 fileInputMode 决定如何处理
+    //     if (fileInputMode.value === 'images') {
+    //         // 这是选择图像文件夹
+    //         multiFramePreviewLoader.processSelectedFiles(files, imageRows.value, imageCols.value, selectedPrecision.value);
+    //     } else if (fileInputMode.value === 'trajectory') {
+    //         // 这是选择轨迹文件
+    //         const file = files[0];
+    //         store.setTrajectoryFile(file);
+    //     }
+    //
+    //     if (event.target) event.target.value = '';
+    // };
     const handleFolderSelectedViaDialog = (event) => {
-        const files = event.target.files;
-        if (!files || files.length === 0) return;
+            const files = event.target.files;
+            if (!files || files.length === 0) return;
 
-        if (selectedMode.value === 'multiFrame') {
-            multiFramePreviewLoader.processSelectedFiles(files, imageRows.value, imageCols.value, selectedPrecision.value);
+            if (fileInputMode.value === 'images') {
+                // 这是选择图像文件夹
 
-        } else if (selectedMode.value === 'gjMode') {
-            const file = files[0];
-            store.setTrajectoryFile(file);
-        }
-        if (event.target) event.target.value = '';
-    };
+                // --- 修正：移除了多余的 selectedPrecision.value 参数 ---
+                multiFramePreviewLoader.processSelectedFiles(
+                    files,
+                    imageRows.value,
+                    imageCols.value
+                )
+
+            } else if (fileInputMode.value === 'trajectory') {
+                // 这是选择轨迹文件
+                const file = files[0];
+                store.setTrajectoryFile(file);
+            }
+
+            if (event.target) event.target.value = '';
+        };
 
     const handleClearAllMultiFrames = () => {
             multiFramePreviewLoader.clearFrames();
-            store.resetMultiFrameData();
+            store.resetMultiFrameData(); // <-- 这个函数已在 store 中更新，会清空轨迹文件
             //notifications.showNotification('预览及结果已清空。');
         };
 
@@ -299,23 +366,57 @@ export function useProcessOrchestrator(mainViewerRef, multiFrameSystemRef, dataC
      * @description 程序化地触发隐藏的文件夹输入框的点击事件。
      * 【重要】根据当前模式动态修改 <input> 的属性。
      */
+    // const triggerFolderDialogForPathHint = () => {
+    //     const input = folderInputRef.value;
+    //     if (!input) return;
+    //
+    //     if (selectedMode.value === 'multiFrame') {
+    //         // 设置为多文件和文件夹选择
+    //         input.webkitdirectory = true;
+    //         input.directory = true;
+    //         input.multiple = true;
+    //         input.accept = ".dat,.jpg,.jpeg,.png,.bmp,.gif,.tif,.tiff"; // 限制文件类型
+    //     } else if (selectedMode.value === 'gjMode') {
+    //         // 设置为单文件选择
+    //         input.webkitdirectory = false;
+    //         input.directory = false;
+    //         input.multiple = false;
+    //         input.accept = ".dat";
+    //     }
+    //
+    //     input.click();
+    // };
     const triggerFolderDialogForPathHint = () => {
-        const input = folderInputRef.value;
-        if (!input) return;
+            const input = folderInputRef.value;
+            if (!input) return;
 
-        if (selectedMode.value === 'multiFrame') {
+            // <--- 新增：设置模式
+            fileInputMode.value = 'images';
+
             // 设置为多文件和文件夹选择
             input.webkitdirectory = true;
             input.directory = true;
             input.multiple = true;
-            input.accept = ".dat,.jpg,.jpeg,.png,.bmp,.gif,.tif,.tiff"; // 限制文件类型
-        } else if (selectedMode.value === 'gjMode') {
-            // 设置为单文件选择
-            input.webkitdirectory = false;
-            input.directory = false;
-            input.multiple = false;
-            input.accept = ".dat";
-        }
+            input.accept = ".dat,.jpg,.jpeg,.png,.bmp,.gif,.tif,.tiff";
+
+            input.click();
+        };
+
+    /**
+     * @description (新增) 触发隐藏的 <input> 点击事件以选择轨迹文件。
+     */
+    const triggerTrajectoryFileDialog = () => {
+        const input = folderInputRef.value;
+        if (!input) return;
+
+        // <--- 新增：设置模式
+        fileInputMode.value = 'trajectory';
+
+        // 设置为单文件选择
+        input.webkitdirectory = false;
+        input.directory = false;
+        input.multiple = false;
+        input.accept = ".dat"; // 轨迹文件通常是 .dat
 
         input.click();
     };
@@ -444,32 +545,29 @@ export function useProcessOrchestrator(mainViewerRef, multiFrameSystemRef, dataC
     return {
         // 状态和 Refs
         selectedMode,
-        isMultiFrameMode,
-        isTrajectoryMode,
+        isManualMode, // <--- 修改,
         trajectoryFile,
         selectedAlgorithmType,
         selectedSpecificAlgorithm,
         imageRows,
         imageCols,
         selectedPrecision,
-
         satelliteType,
         satelliteModel,
         waveType,
         trajectoryEntry,
-
         currentMultiFrameIndex,
         allFeaturesData,
         isLoading,
         canInferInCurrentMode,
         zoomLevel,
-        singleFrameImageHandler,
+        //singleFrameImageHandler,
         parsedLogs,
         connectionStatus,
         connectionAttempts,
         notifications,
-        additionalImages,
-        isCroppingActive,
+        //additionalImages,
+        //isCroppingActive,
         numberOfResultFrames,
         multiFrameResultImage,
         multiFrameRoiImage,
@@ -480,8 +578,8 @@ export function useProcessOrchestrator(mainViewerRef, multiFrameSystemRef, dataC
         isSettingsDialogVisible,
         isVersionDialogVisible,
         parameterSettings,
-        handleSaveSettings,
 
+        handleSaveSettings,
         // 暴露数据产品相关的状态和方法
         canGenerateFullProduct,
         downloadFullProduct,
@@ -490,19 +588,20 @@ export function useProcessOrchestrator(mainViewerRef, multiFrameSystemRef, dataC
         // 方法
         handleModeChange,
         handleInfer,
-        receiveFileFromMainViewer,
-        handleDeleteSingleFrameImage,
-        onSingleFrameCropConfirmed,
+        //receiveFileFromMainViewer,
+        //handleDeleteSingleFrameImage,
+        //onSingleFrameCropConfirmed,
         handleFolderSelectedViaDialog,
         handleClearAllMultiFrames,
         triggerFolderDialogForPathHint,
+        triggerTrajectoryFileDialog, // <--- 新增
         logOut,
         toggleSseConnection,
         clearAllLogsAndReports,
         zoomIn,
         zoomOut,
-        toggleCropping,
-        handleConfirmCrop,
+        //toggleCropping,
+        //handleConfirmCrop,
         openConfigEditor,
         handleSaveConfig,
     };

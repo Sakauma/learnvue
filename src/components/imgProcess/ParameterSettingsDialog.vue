@@ -11,9 +11,8 @@
     <el-form :model="localSettings" label-position="right" label-width="120px">
       <el-form-item label="处理模式:">
         <el-select v-model="localSettings.selectedMode" placeholder="选择模式">
-          <el-option label="单帧模式" value="singleFrame"></el-option>
-          <el-option label="多帧模式" value="multiFrame"></el-option>
-          <el-option label="轨迹模式" value="gjMode"></el-option>
+          <el-option label="手动模式" value="manual"></el-option>
+          <el-option label="自动模式" value="automatic"></el-option>
         </el-select>
       </el-form-item>
 

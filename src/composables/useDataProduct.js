@@ -8,7 +8,7 @@ import { useNotifications } from './useNotifications.js';
  * @param {import('vue').Ref<object>} allFeaturesDataRef - 包含所有帧特征数据的响应式引用。
  * @returns {object} 包含数据产品生成和操作方法的对象。
  */
-export function useDataProduct(allFeaturesDataRef) {
+export function useDataProduct(allFeaturesDataRef, resultFolderPathFromApi) {
 
     const { showNotification } = useNotifications();
 
@@ -83,30 +83,64 @@ export function useDataProduct(allFeaturesDataRef) {
     /**
      * @description 下载包含所有帧的完整数据产品。
      */
-    function downloadFullProduct() {
-        const fullProduct = generateFullProduct();
-        if (!fullProduct) {
-            showNotification('❌ 没有可供下载的数据产品。');
+    // function downloadFullProduct() {
+    //     const fullProduct = generateFullProduct();
+    //     if (!fullProduct) {
+    //         showNotification('❌ 没有可供下载的数据产品。');
+    //         return;
+    //     }
+    //
+    //     try {
+    //         const dataStr = JSON.stringify(fullProduct, null, 4);
+    //         const blob = new Blob([dataStr], { type: 'application/json;charset=utf-8' });
+    //         const url = URL.createObjectURL(blob);
+    //
+    //         const link = document.createElement('a');
+    //         link.href = url;
+    //         link.download = `XJY_Data_Product_All_Frames.json`;
+    //         document.body.appendChild(link);
+    //         link.click();
+    //         document.body.removeChild(link);
+    //         URL.revokeObjectURL(url);
+    //
+    //         showNotification(`✅ 已开始下载完整的数据产品。`);
+    //     } catch (error) {
+    //         console.error("下载数据产品失败:", error);
+    //         showNotification('❌ 生成下载文件时出错。');
+    //     }
+    // }
+    async function downloadFullProduct() { //
+
+        const analysisId = resultFolderPathFromApiRef.value;
+
+        if (!analysisId) {
+            showNotification('❌ 无法生成：缺少 AnalysisID (结果路径)。');
             return;
         }
 
         try {
-            const dataStr = JSON.stringify(fullProduct, null, 4);
-            const blob = new Blob([dataStr], { type: 'application/json;charset=utf-8' });
-            const url = URL.createObjectURL(blob);
+            showNotification(`🚧 正在请求后端生成数据 (ID: ${analysisId})...`);
 
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = `XJY_Data_Product_All_Frames.json`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            URL.revokeObjectURL(url);
+            // 2. 调用您的新后端端点
+            const response = await axios.post('/api/persist_features',
+                { analysisId: analysisId },
+                {
+                    headers: { 'Content-Type': 'application/json' }
+                }
+            );
 
-            showNotification(`✅ 已开始下载完整的数据产品。`);
+            if (response.data?.success) {
+                showNotification(`✅ ${response.data.message || '数据产品已在后端生成！'}`);
+            } else {
+                showNotification(`⚠️ ${response.data?.message || '生成时发生未知错误。'}`);
+            }
         } catch (error) {
-            console.error("下载数据产品失败:", error);
-            showNotification('❌ 生成下载文件时出错。');
+            console.error("生成数据产品请求失败:", error);
+            let errorMessage = '❌ 生成数据产品失败';
+            if (error.response) { errorMessage += `: 服务器响应 ${error.response.status} (${error.response.data?.message || error.response.data?.error || '未知错误'})`; }
+            else if (error.request) { errorMessage += ': 未能连接到服务器。'; }
+            else { errorMessage += `: ${error.message}`; }
+            showNotification(errorMessage, 3000);
         }
     }
 

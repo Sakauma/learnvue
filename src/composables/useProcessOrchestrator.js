@@ -102,7 +102,7 @@ export function useProcessOrchestrator(multiFrameSystemRef, dataColumnRef, folde
         canGenerateFullProduct,
             downloadFullProduct,
             transmitFullProduct,
-    } = useDataProduct(allFeaturesData);
+    } = useDataProduct(allFeaturesData, resultFolderPathFromApi);
 
     const multiFramePreviewLoader = useMultiFrameLoader(notifications.showNotification);
 

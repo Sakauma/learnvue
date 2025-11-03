@@ -7,7 +7,7 @@
         :disabled="!canPerformAction"
         @click="$emit('download')"
     >
-      下载数据产品
+      生成数据产品
     </el-button>
     <el-button
         type="success"

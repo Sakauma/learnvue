@@ -26,11 +26,11 @@ export const useProcessStore = defineStore('process', {
      */
     state: () => ({
         /** @type {'manual' | 'automatic'} 当前选择的处理模式 */
-        selectedMode: 'manual',
-        /** @type {string} 选择的算法大类 (例如 'classification', 'detection') */
-        selectedAlgorithmType: '',
+        selectedMode: 'automatic',
+        /** @type {string} 选择的算法大类 */
+        selectedAlgorithmType: 'traditional',
         /** @type {string} 选择的具体算法名称 */
-        selectedSpecificAlgorithm: '',
+        selectedSpecificAlgorithm: 'GJDeal',
         /** @type {number} 图像的行数，用于.dat文件解析和后端处理 */
         imageRows: 512,
         /** @type {number} 图像的列数，用于.dat文件解析和后端处理 */
@@ -69,6 +69,11 @@ export const useProcessStore = defineStore('process', {
         allFeaturesData: null,
         /** @type {boolean} 全局加载状态，true表示正在进行异步操作（如识别） */
         isLoading: false,
+
+        /** @type {'disconnected' | 'connecting' | 'connected' | 'error'} 自动模式SSE连接状态 */
+        autoModeConnectionStatus: 'disconnected',
+        /** @type {string[]} 后端推送的自动模式预览图像URL列表 */
+        autoModePreviewUrls: [],
     }),
 
     /**
@@ -81,14 +86,22 @@ export const useProcessStore = defineStore('process', {
          * @param {object} state - 当前的 store state。
          * @returns {boolean} 如果是手动模式则返回 true。
          */
-        isManualMode: (state) => state.selectedMode === 'manual', // <--- 修改：替换 isMultiFrameMode
+        isManualMode: (state) => state.selectedMode === 'manual',
 
         /**
          * @description 获取多帧结果的总数量。
          * @param {object} state - 当前的 store state。
          * @returns {number} 结果文件的数量。
          */
-        numberOfResultFrames: (state) => state.resultFilesFromApi?.outputImageNames?.length || 0,
+        numberOfResultFrames: (state) => {
+            // 自动模式下，结果帧数也来自 resultFilesFromApi
+            return state.resultFilesFromApi?.outputImageNames?.length || 0;
+        },
+
+        /** @type {number} 预览帧的总数 (手动或自动) */
+        totalPreviewFrames: (state) => {
+            return state.isManualMode ? state.multiFrameFiles.length : state.autoModePreviewUrls.length;
+        },
 
         uploadProgress: () => inferenceHandler.uploadProgress.value,
         /**
@@ -97,17 +110,16 @@ export const useProcessStore = defineStore('process', {
          * @returns {boolean} 如果可以执行识别则返回 true。
          */
         canInferInCurrentMode: (state) => {
-            if (!state.selectedSpecificAlgorithm) return false; // 必须选择一个算法
+            if (!state.selectedSpecificAlgorithm) return false; // 必须选择算法
 
-            if (state.selectedMode === 'manual') {
-                // 手动模式下，必须手动选择图像文件和轨迹文件
+            if (state.isManualMode) {
+                // 手动模式
                 return state.multiFrameFiles.length > 0 && !!state.trajectoryFile;
+            } else {
+                // 自动模式
+                // 必须已连接SSE，并且后端已推送了可用的图像
+                return state.autoModeConnectionStatus === 'connected' && state.autoModePreviewUrls.length > 0;
             }
-            if (state.selectedMode === 'automatic') {
-                // TODO: 自动模式的逻辑
-                return false;
-            }
-            return false;
         },
     },
 
@@ -150,14 +162,25 @@ export const useProcessStore = defineStore('process', {
         },
 
         /**
-         * @description 废弃
-         * @description 重置所有与单帧模式相关的状态。
+         * @description 设置自动模式的SSE连接状态
+         * @param {'disconnected' | 'connecting' | 'connected' | 'error'} status
          */
-        resetSingleFrameData() {
-            this.singleFrameFile = null;
-            this.singleFrameFileMD5 = '';
-            this.cropCoordinates = null;
-            // notifications.showNotification('单帧图像及数据已清除。');
+        setAutoModeConnectionStatus(status) {
+            this.autoModeConnectionStatus = status;
+        },
+
+        /**
+         * @description 设置自动模式的预览URL列表
+         * @param {string[]} urls
+         */
+        setAutoModePreviewUrls(urls) {
+            if (Array.isArray(urls)) {
+                this.autoModePreviewUrls = urls;
+                notifications.showNotification(`✅ 自动模式：已接收 ${urls.length} 帧图像列表。`);
+            } else {
+                this.autoModePreviewUrls = [];
+                notifications.showNotification(`⚠️ 自动模式：收到的图像列表格式不正确。`);
+            }
         },
 
         /**
@@ -170,6 +193,8 @@ export const useProcessStore = defineStore('process', {
             this.resultFilesFromApi = null;
             this.currentMultiFrameIndex = -1;
             this.allFeaturesData = null;
+            // 重置自动模式数据，但不重置连接状态
+            this.autoModePreviewUrls = [];
             notifications.showNotification('所有预览和结果已清除。');
         },
 
@@ -180,6 +205,9 @@ export const useProcessStore = defineStore('process', {
             this.resetSingleFrameData(); // <-- 这个也调用，以防万一
             this.resetMultiFrameData();
             this.isLoading = false;
+
+            this.autoModeConnectionStatus = 'disconnected';
+            this.autoModePreviewUrls = [];
             //notifications.showNotification('界面数据已经清空。');
         },
 
@@ -205,15 +233,12 @@ export const useProcessStore = defineStore('process', {
                     this.trajectoryFile, // trackFile
                     abortSignal
                 );
-            } else if (this.selectedMode === 'automatic') {
-                // TODO: 自动模式的调用
-                notifications.showNotification(`❌ 自动模式尚未实现。`);
-                this.isLoading = false;
-                return;
             } else {
-                notifications.showNotification(`❌ 未知的处理模式: ${this.selectedMode}`);
-                this.isLoading = false;
-                return;
+                // --- 自动模式逻辑  ---
+                result = await inferenceHandler.performAutoModeInference(
+                    this.selectedSpecificAlgorithm,
+                    abortSignal
+                );
             }
 
             if (result?.success && result.data) {

@@ -190,6 +190,54 @@ export function useInference(showNotificationCallback) {
         }
     }
 
+    /**
+     * 执行自动模式识别操作（不上传文件）
+     * @param {string} algorithm - 使用的算法名称
+     * @param {Object} abortSignal - AbortController的signal
+     * @returns {Promise<Object>} - 返回包含识别结果的对象
+     */
+    async function performAutoModeInference(algorithm, abortSignal) {
+        if (!algorithm) {
+            showNotificationCallback('请选择一个算法。');
+            return { success: false, error: 'Missing algorithm' };
+        }
+
+        isLoading.value = true;
+        showNotificationCallback(`🚧 正在执行自动模式分析...`);
+
+        try {
+            // 假设后端的自动分析API是 /infer_auto_mode
+            // 它只需要算法名称，因为后端已经知道文件路径
+            const response = await axios.post('/infer_auto_mode',
+                { algorithm: algorithm }, // 发送JSON数据
+                {
+                    headers: { 'Content-Type': 'application/json' },
+                    signal: abortSignal
+                }
+            );
+
+            if (response.data && response.data.success) {
+                showNotificationCallback(response.data.message || '✅ 自动模式分析成功！');
+                return { success: true, data: response.data };
+            } else {
+                const errorMessage = response.data?.message || '后端处理失败。';
+                showNotificationCallback(`❌ 自动模式分析失败: ${errorMessage}`);
+                return { success: false, error: errorMessage };
+            }
+        } catch (error) {
+            if (axios.isCancel(error)) {
+                showNotificationCallback('操作已取消');
+                return { success: false, error: 'Cancelled' };
+            }
+            console.error('自动模式分析请求失败:', error);
+            const errorMessage = error.response?.data?.message || error.message || '请求失败。';
+            showNotificationCallback(`❌ 自动模式分析失败: ${errorMessage}`);
+            return { success: false, error: errorMessage };
+        } finally {
+            isLoading.value = false;
+        }
+    }
+
     // 返回所有响应式变量和方法
     return {
         isLoading: readonly(isLoading),
@@ -198,5 +246,6 @@ export function useInference(showNotificationCallback) {
         uploadProgress: readonly(uploadProgress),
         performInference,
         performMultiFrameInference,
+        performAutoModeInference,
     };
 }

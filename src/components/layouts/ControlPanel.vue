@@ -1,14 +1,57 @@
 /*ControlPanel.vue*/
+<!--<template>-->
+<!--  <div class="control-panel-wrapper">-->
+<!--    <el-row class="menu-button-row" justify="start" align="middle">-->
+<!--      <el-col :span="24" class="left-menu-buttons">-->
+<!--        <el-button-->
+<!--            class="control-button"-->
+<!--            @click="$emit('infer')"-->
+<!--            :disabled="isLoading || !canInferInCurrentMode">-->
+<!--          {{ isMultiFrameMode ? '分析数据' : '分析数据' }}-->
+<!--        </el-button>-->
+<!--        <el-button class="control-button" @click="$emit('open-settings')">-->
+<!--          参数设置-->
+<!--        </el-button>-->
+<!--        <el-button class="control-button" @click="$emit('open-config-editor')">-->
+<!--          编辑算法配置文件-->
+<!--        </el-button>-->
+<!--      </el-col>-->
+<!--    </el-row>-->
+<!--  </div>-->
+<!--</template>-->
+
 <template>
   <div class="control-panel-wrapper">
     <el-row class="menu-button-row" justify="start" align="middle">
       <el-col :span="24" class="left-menu-buttons">
-        <el-button
-            class="control-button"
-            @click="$emit('infer')"
-            :disabled="isLoading || !canInferInCurrentMode">
-          {{ isMultiFrameMode ? '分析数据' : '分析数据' }}
-        </el-button>
+
+        <template v-if="isManualMode">
+          <el-button
+              class="control-button"
+              @click="$emit('infer')"
+              :disabled="isLoading || !canInferInCurrentMode">
+            分析数据
+          </el-button>
+        </template>
+
+        <template v-else>
+          <el-button
+              class="control-button"
+              :type="autoModeConnectionStatus === 'connected' ? 'success' : ''"
+              @click="$emit('toggle-auto-mode-connection')"
+              :disabled="isLoading">
+            {{ autoModeConnectionText }}
+          </el-button>
+
+          <el-button
+              v-if="autoModeConnectionStatus === 'connected'"
+              class="control-button"
+              @click="$emit('infer')"
+              :disabled="isLoading || !canInferInCurrentMode">
+            分析数据
+          </el-button>
+        </template>
+
         <el-button class="control-button" @click="$emit('open-settings')">
           参数设置
         </el-button>
@@ -21,6 +64,7 @@
 </template>
 
 <script setup>
+import { computed } from 'vue';
 import { ElRow, ElCol, ElButton } from 'element-plus';
 
 //确保 props 定义与父组件传入的完全一致
@@ -33,17 +77,37 @@ const props = defineProps({
     type: Boolean,
     required: true,
   },
-  isMultiFrameMode: {
+  isMultiFrameMode: { // <--- 这个prop现在代表 "isManualMode"
     type: Boolean,
     required: true,
   },
+  // --- 新增 Props ---
+  autoModeConnectionStatus: {
+    type: String, // 'disconnected', 'connecting', 'connected', 'error'
+    default: 'disconnected',
+  }
 });
 
+// 确保 emit 定义包含了所有对外触发的事件
+// <--- 新增 computed ---
+// 根据 isMultiFrameMode 重命名，更清晰
+const isManualMode = computed(() => props.isMultiFrameMode);
+const autoModeConnectionText = computed(() => {
+  switch (props.autoModeConnectionStatus) {
+    case 'connecting': return '连接中...';
+    case 'connected': return '自动服务已连接';
+    case 'error': return '连接错误';
+    case 'disconnected':
+    default:
+      return '连接自动服务';
+  }
+});
 // 确保 emit 定义包含了所有对外触发的事件
 const emit = defineEmits([
   'infer',
   'open-settings',
   'open-config-editor',
+  'toggle-auto-mode-connection', // <--- 新增 Emit
 ]);
 </script>
 
@@ -59,7 +123,7 @@ const emit = defineEmits([
 .left-menu-buttons {
   display: flex;
   align-items: center;
-  gap: 10px; /* <--- 关键！这里统一设置所有按钮的间距为 10px */
+  gap: 10px;
 }
 
 /* 统一所有按钮的样式，并移除独立的 margin */

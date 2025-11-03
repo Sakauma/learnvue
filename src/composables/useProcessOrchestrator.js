@@ -1,4 +1,4 @@
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue';
 import { useRouter } from 'vue-router';
 import axios from 'axios';
 import { useProcessStore } from '../store/processStore.js';
@@ -11,6 +11,7 @@ import { useSseLogs } from './useSseLogs.js';
 import { useZoom } from "./useZoom.js";
 import { useDataProduct } from './useDataProduct.js';
 import {useMultiFrameLoader} from "./useMultiFrameLoader.js";
+import { useSseAutoUpdate } from './useSseAutoUpdate.js';
 
 /**
  * @description 图像处理页面的业务流程编排器 (Orchestrator)。
@@ -45,7 +46,7 @@ export function useProcessOrchestrator(multiFrameSystemRef, dataColumnRef, folde
      * 使用 storeToRefs 可以确保所有解构出的变量都是响应式的 ref。
      */
     const {
-        selectedMode,
+        selectedMode, // <--- 我们需要这个来检查旧模式
         isManualMode,
         selectedAlgorithmType,
         selectedSpecificAlgorithm,
@@ -66,6 +67,10 @@ export function useProcessOrchestrator(multiFrameSystemRef, dataColumnRef, folde
         isLoading, // 全局加载状态，用于显示加载指示器
         uploadProgress,
         canInferInCurrentMode, // 计算属性，判断在当前模式下是否满足执行识别的条件
+
+        // --- 新增自动模式状态 ---
+        autoModeConnectionStatus,
+        autoModePreviewUrls,
     } = storeToRefs(store);
 
     /**
@@ -78,6 +83,9 @@ export function useProcessOrchestrator(multiFrameSystemRef, dataColumnRef, folde
      * @description SSE (Server-Sent Events) 日志 Composable，用于从后端接收实时日志。
      */
     const { logs: parsedLogs, connectionStatus, connectionAttempts, connect, disconnect, clearLogs } = useSseLogs('/sse/logs');
+
+    // --- 新增：初始化自动模式SSE ---
+    const sseAutoUpdate = useSseAutoUpdate()
 
     /**
      * @description 多帧结果图像 URL 管理 Composable。
@@ -120,7 +128,18 @@ export function useProcessOrchestrator(multiFrameSystemRef, dataColumnRef, folde
 
     // 保存设置的回调函数
     const handleSaveSettings = (newSettings) => {
-        store.setMode(newSettings.selectedMode);
+        isSettingsDialogVisible.value = false;
+
+        nextTick(() => {
+            const modeChanged = store.selectedMode !== newSettings.selectedMode;
+
+            if (modeChanged) {
+                sseAutoUpdate.disconnect();
+                multiFramePreviewLoader.clearFrames();
+                clearAllLogsAndReports();
+                store.setMode(newSettings.selectedMode);
+            }
+
         store.selectedAlgorithmType = newSettings.algorithmType;
         store.selectedSpecificAlgorithm = newSettings.specificAlgorithm;
         store.imageRows = newSettings.imageRows;
@@ -131,6 +150,7 @@ export function useProcessOrchestrator(multiFrameSystemRef, dataColumnRef, folde
         store.waveType = newSettings.waveType;
         store.trajectoryEntry = newSettings.trajectoryEntry;
         notifications.showNotification('✅ 参数已保存');
+        });
     };
 
     // --- 3. 计算属性 (Computed Properties) ---
@@ -145,9 +165,16 @@ export function useProcessOrchestrator(multiFrameSystemRef, dataColumnRef, folde
      * @description 处理模式切换（手动/自动）。
      * @param {'manual' | 'automatic'} newMode - 新的模式。
      */
+    // const handleModeChange = (newMode) => {
+    //     store.setMode(newMode);
+    // };
     const handleModeChange = (newMode) => {
-        store.setMode(newMode);
-    };
+            // --- 新增：切换模式时，如果切出自动模式，则断开连接 ---
+            if (newMode !== 'automatic' && sseAutoUpdate.connectionStatus.value === 'connected') {
+                sseAutoUpdate.disconnect();
+            }
+            store.setMode(newMode);
+        };
 
     // 创建一个 ref 来持有 AbortController 实例
     const activeRequestController = ref(null);
@@ -156,6 +183,11 @@ export function useProcessOrchestrator(multiFrameSystemRef, dataColumnRef, folde
      * @description 执行核心的识别（推断）操作。
      */
     const handleInfer = async () => {
+            if (!canInferInCurrentMode.value) { // <--- 检查由 store 完成
+                notifications.showNotification('❌ 当前状态无法分析，请检查算法和文件。');
+                return;
+            }
+
             if (imageRows.value <= 0 || imageCols.value <= 0) {
                 notifications.showNotification('请输入有效的图像行数和列数。');
                 return;
@@ -164,11 +196,13 @@ export function useProcessOrchestrator(multiFrameSystemRef, dataColumnRef, folde
             activeRequestController.value = new AbortController();
 
             // <--- 修改：只保留原 'isMultiFrameMode' 的逻辑
-            if (selectedMode.value === 'manual') {
-                await store.inferMultiFrame(activeRequestController.value.signal);
-            } else if (selectedMode.value === 'automatic') {
-                notifications.showNotification('自动模式尚未实现。');
-            }
+            // if (selectedMode.value === 'manual') {
+            //     await store.inferMultiFrame(activeRequestController.value.signal);
+            // } else if (selectedMode.value === 'automatic') {
+            //     notifications.showNotification('自动模式尚未实现。');
+            // }
+            // store 的 inferMultiFrame 已经包含了手动/自动的分支逻辑
+            await store.inferMultiFrame(activeRequestController.value.signal);
 
             activeRequestController.value = null;
         };
@@ -263,6 +297,16 @@ export function useProcessOrchestrator(multiFrameSystemRef, dataColumnRef, folde
         (['connecting', 'connected'].includes(connectionStatus.value)) ? disconnect() : connect();
     };
 
+    // --- 新增：自动模式连接控制 ---
+    const toggleAutoModeConnection = () => {
+        const currentStatus = sseAutoUpdate.connectionStatus.value;
+        if (currentStatus === 'connected' || currentStatus === 'connecting') {
+            sseAutoUpdate.disconnect();
+        } else {
+            sseAutoUpdate.connect();
+        }
+    };
+
     /**
      * @description 清空所有SSE日志和DataColumn中的报告。
      */
@@ -343,7 +387,30 @@ export function useProcessOrchestrator(multiFrameSystemRef, dataColumnRef, folde
     onUnmounted(() => {
         disconnect(); // 原有的 disconnect()
         // 卸载时移除监听器，防止内存泄漏
+        sseAutoUpdate.disconnect(); // <--- 新增：确保断开自动更新SSE
         window.removeEventListener('keydown', handleKeyDown);
+    });
+
+    // --- 新增：监听自动模式SSE连接状态 ---
+    watch(sseAutoUpdate.connectionStatus, (newStatus) => {
+        store.setAutoModeConnectionStatus(newStatus);
+        if (newStatus === 'connected') {
+            notifications.showNotification('✅ 自动服务已连接');
+        } else if (newStatus === 'disconnected') {
+            notifications.showNotification('自动服务已断开');
+        } else if (newStatus === 'error') {
+            notifications.showNotification('❌ 自动服务连接失败');
+        }
+    });
+
+    // --- 新增：监听自动模式SSE数据 ---
+    watch(sseAutoUpdate.latestData, (newData) => {
+        if (newData && newData.previewImageUrls) {
+            store.setAutoModePreviewUrls(newData.previewImageUrls);
+        } else {
+            // 如果后端推送了空数据或无效数据，也清空
+            store.setAutoModePreviewUrls([]);
+        }
     });
 
     watch(multiFramePreviewLoader.fileList, (newFrameList) => {
@@ -402,6 +469,9 @@ export function useProcessOrchestrator(multiFrameSystemRef, dataColumnRef, folde
         isVersionDialogVisible,
         parameterSettings,
         canGenerateFullProduct,
+        // --- 新增 ---
+        autoModeConnectionStatus,
+        autoModePreviewUrls,
 
         handleSaveSettings,
         downloadFullProduct,
@@ -419,5 +489,7 @@ export function useProcessOrchestrator(multiFrameSystemRef, dataColumnRef, folde
         zoomOut,
         openConfigEditor,
         handleSaveConfig,
+        // --- 新增 ---
+        toggleAutoModeConnection,
     };
 }

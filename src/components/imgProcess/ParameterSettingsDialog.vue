@@ -138,7 +138,7 @@ function onDialogOpen() {
 
 function handleSave() {
   emit('save', localSettings.value);
-  emit('update:visible', false);
+  //emit('update:visible', false);
 }
 </script>
 

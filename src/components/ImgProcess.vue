@@ -14,6 +14,9 @@
         @infer="handleInfer"
         @open-settings="isSettingsDialogVisible = true"
         @open-config-editor="openConfigEditor"
+
+        :auto-mode-connection-status="autoModeConnectionStatus"
+        @toggle-auto-mode-connection="toggleAutoModeConnection"
     />
     <input type="file" ref="folderInputRef" style="display: none" @change="handleFolderSelectedViaDialog"/>
     <div class="main-content-wrapper">
@@ -37,6 +40,10 @@
                 @zoom-in="zoomIn"
                 @zoom-out="zoomOut"
                 @delete-all-frames="handleClearAllMultiFrames"
+
+                :is-manual-mode="isManualMode"
+                :auto-mode-preview-urls="autoModePreviewUrls"
+                :auto-mode-connection-status="autoModeConnectionStatus"
             />
           </div>
           <div v-if="hasResults" class="image-display-box split-view">
@@ -148,6 +155,9 @@ const {
   isSettingsDialogVisible,
   parameterSettings,
 
+  autoModeConnectionStatus,
+  autoModePreviewUrls,
+
   openConfigEditor,
   handleSaveConfig,
   downloadFullProduct,
@@ -166,6 +176,8 @@ const {
   clearAllLogsAndReports,
   zoomIn,
   zoomOut,
+  // --- 新增方法 ---
+  toggleAutoModeConnection,
 } = useProcessOrchestrator(multiFrameSystemRef, dataColumnRef, folderInputRef);
 
 const hasResults = computed(() => {

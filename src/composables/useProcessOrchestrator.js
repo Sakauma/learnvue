@@ -135,6 +135,7 @@ export function useProcessOrchestrator(multiFrameSystemRef, dataColumnRef, folde
 
             if (modeChanged) {
                 sseAutoUpdate.disconnect();
+                disconnect();// 断开日志SSE连接
                 multiFramePreviewLoader.clearFrames();
                 clearAllLogsAndReports();
                 store.setMode(newSettings.selectedMode);

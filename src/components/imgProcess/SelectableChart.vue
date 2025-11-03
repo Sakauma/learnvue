@@ -102,7 +102,6 @@ const clearChart = () => {
 defineExpose({ clearChart });
 </script>
 
-
 <style scoped>
 .selectable-chart-box {
   font-family: "Microsoft YaHei", sans-serif;

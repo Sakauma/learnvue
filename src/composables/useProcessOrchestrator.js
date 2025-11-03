@@ -64,11 +64,11 @@ export function useProcessOrchestrator(multiFrameSystemRef, dataColumnRef, folde
         resultFilesFromApi, // 从后端API获取的结果文件列表
         currentMultiFrameIndex, // 多帧模式下，当前查看的结果帧索引
         allFeaturesData, // 从后端获取的所有特征数据
+        analysisId,
         isLoading, // 全局加载状态，用于显示加载指示器
         uploadProgress,
         canInferInCurrentMode, // 计算属性，判断在当前模式下是否满足执行识别的条件
 
-        // --- 新增自动模式状态 ---
         autoModeConnectionStatus,
         autoModePreviewUrls,
     } = storeToRefs(store);
@@ -84,7 +84,7 @@ export function useProcessOrchestrator(multiFrameSystemRef, dataColumnRef, folde
      */
     const { logs: parsedLogs, connectionStatus, connectionAttempts, connect, disconnect, clearLogs } = useSseLogs('/sse/logs');
 
-    // --- 新增：初始化自动模式SSE ---
+    // 初始化自动模式SSE
     const sseAutoUpdate = useSseAutoUpdate()
 
     /**
@@ -102,7 +102,7 @@ export function useProcessOrchestrator(multiFrameSystemRef, dataColumnRef, folde
         canGenerateFullProduct,
             downloadFullProduct,
             transmitFullProduct,
-    } = useDataProduct(allFeaturesData, resultFolderPathFromApi);
+    } = useDataProduct(allFeaturesData, analysisId);
 
     const multiFramePreviewLoader = useMultiFrameLoader(notifications.showNotification);
 
@@ -165,9 +165,6 @@ export function useProcessOrchestrator(multiFrameSystemRef, dataColumnRef, folde
      * @description 处理模式切换（手动/自动）。
      * @param {'manual' | 'automatic'} newMode - 新的模式。
      */
-    // const handleModeChange = (newMode) => {
-    //     store.setMode(newMode);
-    // };
     const handleModeChange = (newMode) => {
             // --- 新增：切换模式时，如果切出自动模式，则断开连接 ---
             if (newMode !== 'automatic' && sseAutoUpdate.connectionStatus.value === 'connected') {
@@ -194,14 +191,6 @@ export function useProcessOrchestrator(multiFrameSystemRef, dataColumnRef, folde
             }
 
             activeRequestController.value = new AbortController();
-
-            // <--- 修改：只保留原 'isMultiFrameMode' 的逻辑
-            // if (selectedMode.value === 'manual') {
-            //     await store.inferMultiFrame(activeRequestController.value.signal);
-            // } else if (selectedMode.value === 'automatic') {
-            //     notifications.showNotification('自动模式尚未实现。');
-            // }
-            // store 的 inferMultiFrame 已经包含了手动/自动的分支逻辑
             await store.inferMultiFrame(activeRequestController.value.signal);
 
             activeRequestController.value = null;
@@ -297,7 +286,7 @@ export function useProcessOrchestrator(multiFrameSystemRef, dataColumnRef, folde
         (['connecting', 'connected'].includes(connectionStatus.value)) ? disconnect() : connect();
     };
 
-    // --- 新增：自动模式连接控制 ---
+    // 自动模式连接控制
     const toggleAutoModeConnection = () => {
         const currentStatus = sseAutoUpdate.connectionStatus.value;
         if (currentStatus === 'connected' || currentStatus === 'connecting') {
@@ -318,7 +307,7 @@ export function useProcessOrchestrator(multiFrameSystemRef, dataColumnRef, folde
         notifications.showNotification('日志和报告已清空');
     };
 
-    // --- 配置文件相关状态和方法 ---
+    // 配置文件相关状态和方法
     /**
      * @description 控制配置编辑器弹窗是否可见。
      * @type {import('vue').Ref<boolean>}
@@ -387,11 +376,11 @@ export function useProcessOrchestrator(multiFrameSystemRef, dataColumnRef, folde
     onUnmounted(() => {
         disconnect(); // 原有的 disconnect()
         // 卸载时移除监听器，防止内存泄漏
-        sseAutoUpdate.disconnect(); // <--- 新增：确保断开自动更新SSE
+        sseAutoUpdate.disconnect();
         window.removeEventListener('keydown', handleKeyDown);
     });
 
-    // --- 新增：监听自动模式SSE连接状态 ---
+    // 监听自动模式SSE连接状态
     watch(sseAutoUpdate.connectionStatus, (newStatus) => {
         store.setAutoModeConnectionStatus(newStatus);
         if (newStatus === 'connected') {
@@ -403,7 +392,7 @@ export function useProcessOrchestrator(multiFrameSystemRef, dataColumnRef, folde
         }
     });
 
-    // --- 新增：监听自动模式SSE数据 ---
+    // 监听自动模式SSE数据
     watch(sseAutoUpdate.latestData, (newData) => {
         if (newData && newData.previewImageUrls) {
             store.setAutoModePreviewUrls(newData.previewImageUrls);
@@ -469,7 +458,6 @@ export function useProcessOrchestrator(multiFrameSystemRef, dataColumnRef, folde
         isVersionDialogVisible,
         parameterSettings,
         canGenerateFullProduct,
-        // --- 新增 ---
         autoModeConnectionStatus,
         autoModePreviewUrls,
 
@@ -489,7 +477,6 @@ export function useProcessOrchestrator(multiFrameSystemRef, dataColumnRef, folde
         zoomOut,
         openConfigEditor,
         handleSaveConfig,
-        // --- 新增 ---
         toggleAutoModeConnection,
     };
 }

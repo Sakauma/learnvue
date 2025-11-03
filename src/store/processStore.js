@@ -61,6 +61,8 @@ export const useProcessStore = defineStore('process', {
 
         /** @type {string} API返回的结果文件所在的基础路径 */
         resultFolderPathFromApi: '',
+        /** @type {string} API返回的分析ID (用于持久化) */
+        analysisId: '',
         /** @type {object | null} API返回的结果文件列表，包含原始、ROI和输出图像名 */
         resultFilesFromApi: null,
         /** @type {number} 多帧模式下，当前正在查看的结果帧的索引 */
@@ -129,7 +131,6 @@ export const useProcessStore = defineStore('process', {
      */
     actions: {
         // --- 状态设置与重置 Actions ---
-
         /**
          * @description 设置当前的 işlem modu。
          * @param {'manual' | 'automatic'} newMode - 要设置的新模式。
@@ -193,7 +194,6 @@ export const useProcessStore = defineStore('process', {
             this.resultFilesFromApi = null;
             this.currentMultiFrameIndex = -1;
             this.allFeaturesData = null;
-            // 重置自动模式数据，但不重置连接状态
             this.autoModePreviewUrls = [];
             notifications.showNotification('所有预览和结果已清除。');
         },
@@ -202,7 +202,7 @@ export const useProcessStore = defineStore('process', {
          * @description 重置所有模式的状态，通常在模式切换时调用。
          */
         resetAllState() {
-            this.resetSingleFrameData(); // <-- 这个也调用，以防万一
+            //this.resetSingleFrameData();
             this.resetMultiFrameData();
             this.isLoading = false;
 
@@ -221,6 +221,7 @@ export const useProcessStore = defineStore('process', {
             this.isLoading = true;
             this.allFeaturesData = null;
             this.resultFolderPathFromApi = '';
+            this.analysisId = '';
             this.resultFilesFromApi = null;
             this.currentMultiFrameIndex = -1;
 
@@ -244,6 +245,8 @@ export const useProcessStore = defineStore('process', {
             if (result?.success && result.data) {
                 this.resultFolderPathFromApi = result.data.resultPath || '';
                 this.resultFilesFromApi = result.data.resultFiles || null;
+                // 从后端响应中获取正确的 analysisId 并存储
+                this.analysisId = result.data.analysisId || '';
                 if (this.numberOfResultFrames > 0) {
                     this.currentMultiFrameIndex = 0;
                     if (this.resultFolderPathFromApi) {

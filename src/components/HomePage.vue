@@ -27,7 +27,6 @@ const goToInfer = () => {
 };
 </script>
 
-
 <style scoped>
 #home-page {
   height: 100%;

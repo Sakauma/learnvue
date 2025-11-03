@@ -158,13 +158,13 @@ export function useChart(chartRef, chartIndex) {
     const updateChart = (newChartData, seriesName = '数据曲线') => {
         if (chartInstance && isInitialized.value && !chartInstance.isDisposed()) {
             const newOption = {
-                xAxis: { // 允许X轴根据新数据自动调整范围
+                xAxis: {           // 允许X轴根据新数据自动调整范围
                     type: 'value', // 确保类型不变或按需设置
                     min: null,     // 设置为null或不设置，ECharts会根据数据自动计算 'dataMin'
                     max: null,     // 设置为null或不设置，ECharts会根据数据自动计算 'dataMax'
                     name: 'X轴', nameLocation: 'middle', nameGap: 25, axisLabel: {formatter: '{value}'}
                 },
-                yAxis: { // 允许Y轴根据新数据自动调整范围
+                yAxis: {           // 允许Y轴根据新数据自动调整范围
                     type: 'value',
                     min: null,
                     max: null,

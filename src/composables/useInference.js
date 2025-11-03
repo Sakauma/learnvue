@@ -16,7 +16,6 @@ export function useInference(showNotificationCallback) {
     const resultImageUrl = ref(null);
     // 响应式变量：存储文本结果数组
     const textResults = ref([]);
-
     // 用于跟踪上传进度的
     const uploadProgress = ref(0);
 

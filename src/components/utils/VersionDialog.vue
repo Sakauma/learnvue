@@ -9,7 +9,7 @@
   >
     <div class="version-info">
       <h3>XJYTXFX 软件</h3>
-      <p>版本: 0.1.0 (Build 20250925)</p>
+      <p>版本: 0.1.1 (Build 20251101)</p>
       <p>版权所有 © 2025</p>
     </div>
     <template #footer>

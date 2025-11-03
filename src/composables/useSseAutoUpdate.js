@@ -2,7 +2,6 @@ import { ref, readonly, shallowRef, onUnmounted } from 'vue';
 
 /**
  * 使用Server-Sent Events (SSE) 来接收自动模式数据更新的组合式函数
- * @param {string} url - SSE端点的URL (例如 /sse/auto_updates)
  * @returns {Object} - 包含数据、连接状态和相关操作函数的对象
  */
 export function useSseAutoUpdate() {

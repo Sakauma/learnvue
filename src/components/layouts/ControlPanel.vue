@@ -1,25 +1,4 @@
 /*ControlPanel.vue*/
-<!--<template>-->
-<!--  <div class="control-panel-wrapper">-->
-<!--    <el-row class="menu-button-row" justify="start" align="middle">-->
-<!--      <el-col :span="24" class="left-menu-buttons">-->
-<!--        <el-button-->
-<!--            class="control-button"-->
-<!--            @click="$emit('infer')"-->
-<!--            :disabled="isLoading || !canInferInCurrentMode">-->
-<!--          {{ isMultiFrameMode ? '分析数据' : '分析数据' }}-->
-<!--        </el-button>-->
-<!--        <el-button class="control-button" @click="$emit('open-settings')">-->
-<!--          参数设置-->
-<!--        </el-button>-->
-<!--        <el-button class="control-button" @click="$emit('open-config-editor')">-->
-<!--          编辑算法配置文件-->
-<!--        </el-button>-->
-<!--      </el-col>-->
-<!--    </el-row>-->
-<!--  </div>-->
-<!--</template>-->
-
 <template>
   <div class="control-panel-wrapper">
     <el-row class="menu-button-row" justify="start" align="middle">
@@ -81,7 +60,7 @@ const props = defineProps({
     type: Boolean,
     required: true,
   },
-  // --- 新增 Props ---
+
   autoModeConnectionStatus: {
     type: String, // 'disconnected', 'connecting', 'connected', 'error'
     default: 'disconnected',
@@ -89,8 +68,6 @@ const props = defineProps({
 });
 
 // 确保 emit 定义包含了所有对外触发的事件
-// <--- 新增 computed ---
-// 根据 isMultiFrameMode 重命名，更清晰
 const isManualMode = computed(() => props.isMultiFrameMode);
 const autoModeConnectionText = computed(() => {
   switch (props.autoModeConnectionStatus) {
@@ -107,7 +84,7 @@ const emit = defineEmits([
   'infer',
   'open-settings',
   'open-config-editor',
-  'toggle-auto-mode-connection', // <--- 新增 Emit
+  'toggle-auto-mode-connection',
 ]);
 </script>
 

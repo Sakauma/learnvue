@@ -137,11 +137,19 @@ const {
   selectedMode,
   isManualMode,
   trajectoryFile,
-  selectedAlgorithmType, selectedSpecificAlgorithm,
-  imageRows, imageCols, selectedPrecision,
-  currentMultiFrameIndex, allFeaturesData, isLoading, canInferInCurrentMode,
+  selectedAlgorithmType,
+  selectedSpecificAlgorithm,
+  imageRows,
+  imageCols,
+  selectedPrecision,
+  currentMultiFrameIndex,
+  allFeaturesData,
+  isLoading,
+  canInferInCurrentMode,
   zoomLevel,
-  parsedLogs, connectionStatus, connectionAttempts,
+  parsedLogs,
+  connectionStatus,
+  connectionAttempts,
   notifications,
   numberOfResultFrames,
   multiFrameRoiImage,
@@ -176,7 +184,6 @@ const {
   clearAllLogsAndReports,
   zoomIn,
   zoomOut,
-  // --- 新增方法 ---
   toggleAutoModeConnection,
 } = useProcessOrchestrator(multiFrameSystemRef, dataColumnRef, folderInputRef);
 
@@ -276,7 +283,7 @@ const hasResults = computed(() => {
   transition: width 0.3s ease-in-out;
   width: 100%;
 }
-/* 【新增】当处于并排模式时，滑动条容器宽度变为50% */
+/* 当处于并排模式时，滑动条容器宽度变为50% */
 .zoom-slider-layout.split-view {
   width: 50%;
 }

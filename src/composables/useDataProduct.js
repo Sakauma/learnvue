@@ -6,6 +6,7 @@ import { useNotifications } from './useNotifications.js';
  * @description 数据产品处理器 Composable
  * 负责根据后端返回的原始特征数据，生成、下载和传输结构化的数据产品。
  * @param {import('vue').Ref<object>} allFeaturesDataRef - 包含所有帧特征数据的响应式引用。
+ * @param resultFolderPathFromApi
  * @returns {object} 包含数据产品生成和操作方法的对象。
  */
 export function useDataProduct(allFeaturesDataRef, resultFolderPathFromApi) {
@@ -83,35 +84,9 @@ export function useDataProduct(allFeaturesDataRef, resultFolderPathFromApi) {
     /**
      * @description 下载包含所有帧的完整数据产品。
      */
-    // function downloadFullProduct() {
-    //     const fullProduct = generateFullProduct();
-    //     if (!fullProduct) {
-    //         showNotification('❌ 没有可供下载的数据产品。');
-    //         return;
-    //     }
-    //
-    //     try {
-    //         const dataStr = JSON.stringify(fullProduct, null, 4);
-    //         const blob = new Blob([dataStr], { type: 'application/json;charset=utf-8' });
-    //         const url = URL.createObjectURL(blob);
-    //
-    //         const link = document.createElement('a');
-    //         link.href = url;
-    //         link.download = `XJY_Data_Product_All_Frames.json`;
-    //         document.body.appendChild(link);
-    //         link.click();
-    //         document.body.removeChild(link);
-    //         URL.revokeObjectURL(url);
-    //
-    //         showNotification(`✅ 已开始下载完整的数据产品。`);
-    //     } catch (error) {
-    //         console.error("下载数据产品失败:", error);
-    //         showNotification('❌ 生成下载文件时出错。');
-    //     }
-    // }
     async function downloadFullProduct() { //
 
-        const analysisId = resultFolderPathFromApiRef.value;
+        const analysisId = resultFolderPathFromApi.value;
 
         if (!analysisId) {
             showNotification('❌ 无法生成：缺少 AnalysisID (结果路径)。');
@@ -122,7 +97,7 @@ export function useDataProduct(allFeaturesDataRef, resultFolderPathFromApi) {
             showNotification(`🚧 正在请求后端生成数据 (ID: ${analysisId})...`);
 
             // 2. 调用您的新后端端点
-            const response = await axios.post('/api/persist_features',
+            const response = await axios.post('persist_features',
                 { analysisId: analysisId },
                 {
                     headers: { 'Content-Type': 'application/json' }

@@ -31,7 +31,7 @@ const chartRefs = ref([]);
 // 从配置文件中导入图表选项定义
 const featureOptions = FEATURE_DEFINITIONS;
 
-// 【已修改】初始化图表配置，现在默认显示全部12个特征图表
+// 初始化图表配置，现在默认显示全部12个特征图表
 const chartConfigs = ref(FEATURE_DEFINITIONS.slice(0, 3));
 </script>
 

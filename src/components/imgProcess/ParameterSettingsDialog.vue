@@ -138,7 +138,6 @@ function onDialogOpen() {
 
 function handleSave() {
   emit('save', localSettings.value);
-  //emit('update:visible', false);
 }
 </script>
 
@@ -164,7 +163,7 @@ function handleSave() {
 
 .composite-select-group .short-select {
   flex: 1;
-  width: auto; /* 覆盖默认的180px，使其在flex中自由伸缩 */
+  width: auto;
 }
 
 .el-form-item :deep(.algorithm-selectors) {

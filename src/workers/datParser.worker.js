@@ -52,7 +52,6 @@ function processSingleFrame(frameBuffer, rows, cols) {
     return canvas.convertToBlob({ type: 'image/png' });
 }
 
-
 /**
  * @description Web Worker 的消息事件监听器。
  * 这是 Worker 的入口点。它根据接收到的'mode'来决定执行何种操作。
@@ -88,7 +87,6 @@ self.onmessage = async function(e) {
         const headerOffsets = expectedHeaderSize;
 
         // --- 根据模式执行不同操作 ---
-
         if (mode === 'getCount') {
             // 模式1: 只获取子图像数量
             self.postMessage({ success: true, mode: 'getCount', frameCount: frameCount });

@@ -192,26 +192,7 @@ export function useMultiFrameLoader(showNotificationCallback) {
                     isSubFrame: false,
                 }]);
             } else if (fileNameLower.endsWith('.dat')) {
-                console.log(`[loader] 发现.dat文件，开始解析帧数: ${file.name}`);
-                // 对于.dat文件，返回一个异步解析其所有子帧信息的Promise
-                return getDatFrameCount(file).then(frameCount => {
-                    console.log(`[loader] 解析成功: ${file.name} 包含 ${frameCount} 帧。`);
-                    const subFrames = [];
-                    for (let i = 0; i < frameCount; i++) {
-                        subFrames.push({
-                            displayName: `${file.name}_${String(i).padStart(3, '0')}.png`,
-                            originalFile: file,
-                            isSubFrame: true,
-                            subFrameIndex: i,
-                        });
-                    }
-                    return subFrames;
-                }).catch(error => {
-                    const errorMessage = `❌ 解析 ${file.name} 文件头失败: ${error.message}`;
-                    console.error(errorMessage);
-                    showNotificationCallback(errorMessage);
-                    return []; // 出错时返回空数组，不中断整个流程
-                });
+                return processDatFile(file, rows, cols);
             }
             return Promise.resolve([]); // 不支持的文件类型
         });
@@ -239,6 +220,119 @@ export function useMultiFrameLoader(showNotificationCallback) {
             showNotificationCallback('❌ 处理文件时发生未知错误，请检查控制台。');
         }finally {
             isProcessingList.value = false; // 在 finally 块中确保重置状态
+        }
+    }
+
+    /**
+     * @description 异步处理单个 .dat 文件（无论来自手动上传还是自动模式）
+     * @param {File} file - .dat 文件对象
+     * @param {number} rows - 图像行数
+     * @param {number} cols - 图像列数
+     * @returns {Promise<Array>} - 返回一个包含子帧信息对象的数组
+     */
+    async function processDatFile(file, rows, cols) {
+        try {
+            console.log(`[loader] 发现.dat文件，开始解析帧数: ${file.name}`);
+            // 1. 获取帧数
+            const frameCount = await getDatFrameCount(file);
+            console.log(`[loader] 解析成功: ${file.name} 包含 ${frameCount} 帧。`);
+
+            // 2. 为每一帧创建信息对象
+            const subFrames = [];
+            for (let i = 0; i < frameCount; i++) {
+                subFrames.push({
+                    displayName: `${file.name}_${String(i).padStart(3, '0')}.png`,
+                    originalFile: file, // 引用原始的 .dat 文件
+                    isSubFrame: true,
+                    subFrameIndex: i,
+                });
+            }
+            return subFrames;
+        } catch (error) {
+            const errorMessage = `❌ 解析 ${file.name} 文件头失败: ${error.message}`;
+            console.error(errorMessage);
+            showNotificationCallback(errorMessage);
+            return []; // 出错时返回空数组
+        }
+    }
+
+    // (--- 新增：处理自动模式 .dat 文件 URL 列表的函数 ---)
+    /**
+     * @description (自动模式) 异步获取并处理 .dat 文件 URL 列表
+     * @param {string[]} urls - 后端推送的 .dat 文件 URL (e.g., /api/get_auto_dat_file?taskId=1)
+     * @param {number} rows - 图像行数
+     * @param {number} cols - 图像列数
+     */
+    async function processAutoModeDatUrls(urls, rows, cols) {
+        if (isLoadingFrame.value || isProcessingList.value) {
+            showNotificationCallback("⚠️ 正在处理，请稍候...");
+            return;
+        }
+        isProcessingList.value = true;
+        console.log('[loader] 开始处理自动模式 .dat URL 列表...');
+
+        if (!rows || rows <= 0 || !cols || cols <= 0) {
+            showNotificationCallback(`❌ 自动模式错误：请提供有效的图像行数(当前: ${rows})和列数(当前: ${cols})。`);
+            isProcessingList.value = false;
+            return;
+        }
+        clearFrames();
+        currentImageRows.value = rows;
+        currentImageCols.value = cols;
+
+        // 为每个 URL 创建一个 fetch 和 processDatFile 的 Promise
+        const processingPromises = urls.map(async (url) => {
+            try {
+                showNotificationCallback(`🚧 正在下载自动模式文件: ${url}`);
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error(`下载失败: ${response.status} ${response.statusText}`);
+                }
+                const arrayBuffer = await response.arrayBuffer();
+
+                // 从 URL 中提取 taskId 作为文件名
+                const urlParams = new URLSearchParams(url.split('?')[1]);
+                const taskId = urlParams.get('taskId') || 'unknown';
+                const fileName = `auto_task_${taskId}.dat`;
+
+                // 将 ArrayBuffer 转换为 File 对象，以便复用 processDatFile
+                const datFile = new File([arrayBuffer], fileName, { type: "application/octet-stream" });
+
+                // 调用与手动模式相同的 .dat 处理函数
+                return await processDatFile(datFile, rows, cols);
+
+            } catch (error) {
+                const errorMessage = `❌ 处理自动模式文件 ${url} 失败: ${error.message}`;
+                console.error(errorMessage);
+                showNotificationCallback(errorMessage);
+                return []; // 出错时返回空数组
+            }
+        });
+
+        try {
+            // 等待所有 .dat 文件被下载和解析
+            const nestedResults = await Promise.all(processingPromises);
+            // 扁平化所有子帧
+            const expandedList = nestedResults.flat();
+            console.log('[loader] 自动模式所有 .dat 文件处理完成，生成扁平化预览列表:', expandedList);
+
+            if (expandedList.length === 0) {
+                showNotificationCallback('⚠️ 自动模式：未找到支持的图像文件。');
+                return;
+            }
+
+            fileList.value = expandedList;
+            showNotificationCallback(`✅ 自动模式：已加载 ${expandedList.length} 帧图像。`);
+
+            // 加载第一帧
+            if (fileList.value.length > 0) {
+                await loadFrame(0);
+            }
+        } catch (error) {
+            console.error('[loader] 处理自动模式文件列表时发生严重错误:', error);
+            showNotificationCallback('❌ 处理自动模式文件时发生未知错误，请检查控制台。');
+        } finally {
+            isProcessingList.value = false;
         }
     }
 
@@ -274,6 +368,7 @@ export function useMultiFrameLoader(showNotificationCallback) {
         isLoadingFrame,
         isProcessingList,
         processSelectedFiles,
+        processAutoModeDatUrls,
         loadFrame,
         nextFrame,
         prevFrame,

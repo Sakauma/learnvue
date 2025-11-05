@@ -70,7 +70,7 @@ export function useProcessOrchestrator(multiFrameSystemRef, dataColumnRef, folde
         canInferInCurrentMode, // 计算属性，判断在当前模式下是否满足执行识别的条件
 
         autoModeConnectionStatus,
-        autoModePreviewUrls,
+        autoModeDatFileUrls,
     } = storeToRefs(store);
 
     /**
@@ -381,25 +381,21 @@ export function useProcessOrchestrator(multiFrameSystemRef, dataColumnRef, folde
         window.removeEventListener('keydown', handleKeyDown);
     });
 
-    // 监听自动模式SSE连接状态
-    watch(sseAutoUpdate.connectionStatus, (newStatus) => {
-        store.setAutoModeConnectionStatus(newStatus);
-        if (newStatus === 'connected') {
-            notifications.showNotification('✅ 自动服务已连接');
-        } else if (newStatus === 'disconnected') {
-            notifications.showNotification('自动服务已断开');
-        } else if (newStatus === 'error') {
-            notifications.showNotification('❌ 自动服务连接失败');
-        }
-    });
-
     // 监听自动模式SSE数据
     watch(sseAutoUpdate.latestData, (newData) => {
-        if (newData && newData.previewImageUrls) {
-            store.setAutoModePreviewUrls(newData.previewImageUrls);
+        if (newData && newData.datFileUrls && newData.datFileUrls.length > 0) {
+            store.setAutoModeDatFileUrls(newData.datFileUrls);
+            multiFramePreviewLoader.processAutoModeDatUrls(
+                newData.datFileUrls,
+                imageRows.value, // 传入当前的行列设置
+                imageCols.value
+            );
         } else {
-            // 如果后端推送了空数据或无效数据，也清空
-            store.setAutoModePreviewUrls([]);
+            store.setAutoModeDatFileUrls([]);
+            if (!isManualMode.value) {
+                // 只有在自动模式下才清空帧
+                multiFramePreviewLoader.clearFrames();
+            }
         }
     });
 
@@ -460,7 +456,7 @@ export function useProcessOrchestrator(multiFrameSystemRef, dataColumnRef, folde
         parameterSettings,
         canGenerateFullProduct,
         autoModeConnectionStatus,
-        autoModePreviewUrls,
+        autoModeDatFileUrls,
 
         handleSaveSettings,
         downloadFullProduct,

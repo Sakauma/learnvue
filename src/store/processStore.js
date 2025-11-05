@@ -74,8 +74,8 @@ export const useProcessStore = defineStore('process', {
 
         /** @type {'disconnected' | 'connecting' | 'connected' | 'error'} 自动模式SSE连接状态 */
         autoModeConnectionStatus: 'disconnected',
-        /** @type {string[]} 后端推送的自动模式预览图像URL列表 */
-        autoModePreviewUrls: [],
+        /** @type {string[]} 后端推送的自动模式 .dat文件URL列表*/
+        autoModeDatFileUrls: [],
     }),
 
     /**
@@ -102,7 +102,8 @@ export const useProcessStore = defineStore('process', {
 
         /** @type {number} 预览帧的总数 (手动或自动) */
         totalPreviewFrames: (state) => {
-            return state.isManualMode ? state.multiFrameFiles.length : state.autoModePreviewUrls.length;
+            //return state.isManualMode ? state.multiFrameFiles.length : state.autoModePreviewUrls.length;
+            return state.multiFrameFiles.length;
         },
 
         uploadProgress: () => inferenceHandler.uploadProgress.value,
@@ -119,8 +120,9 @@ export const useProcessStore = defineStore('process', {
                 return state.multiFrameFiles.length > 0 && !!state.trajectoryFile;
             } else {
                 // 自动模式
-                // 必须已连接SSE，并且后端已推送了可用的图像
-                return state.autoModeConnectionStatus === 'connected' && state.autoModePreviewUrls.length > 0;
+                // 自动模式：必须已连接SSE，并且后端已推送了可用的 .dat 文件 URL
+                //return state.autoModeConnectionStatus === 'connected' && state.autoModePreviewUrls.length > 0;
+                return state.autoModeConnectionStatus === 'connected' && state.autoModeDatFileUrls.length > 0;
             }
         },
     },
@@ -171,16 +173,18 @@ export const useProcessStore = defineStore('process', {
         },
 
         /**
-         * @description 设置自动模式的预览URL列表
+         * @description 设置自动模式的.dat文件URL列表
          * @param {string[]} urls
          */
-        setAutoModePreviewUrls(urls) {
+        setAutoModeDatFileUrls(urls) {
             if (Array.isArray(urls)) {
-                this.autoModePreviewUrls = urls;
-                notifications.showNotification(`✅ 自动模式：已接收 ${urls.length} 帧图像列表。`);
+                this.autoModeDatFileUrls = urls;
+                if (urls.length > 0) {
+                    notifications.showNotification(`✅ 自动模式：已接收 ${urls.length} 个 .dat 文件列表。`);
+                }
             } else {
-                this.autoModePreviewUrls = [];
-                notifications.showNotification(`⚠️ 自动模式：收到的图像列表格式不正确。`);
+                this.autoModeDatFileUrls = [];
+                notifications.showNotification(`⚠️ 自动模式：收到的 .dat 文件列表格式不正确。`);
             }
         },
 
@@ -194,7 +198,7 @@ export const useProcessStore = defineStore('process', {
             this.resultFilesFromApi = null;
             this.currentMultiFrameIndex = -1;
             this.allFeaturesData = null;
-            this.autoModePreviewUrls = [];
+            this.autoModeDatFileUrls = [];
             notifications.showNotification('所有预览和结果已清除。');
         },
 
@@ -207,7 +211,7 @@ export const useProcessStore = defineStore('process', {
             this.isLoading = false;
 
             this.autoModeConnectionStatus = 'disconnected';
-            this.autoModePreviewUrls = [];
+            this.autoModeDatFileUrls = [];
             //notifications.showNotification('界面数据已经清空。');
         },
 

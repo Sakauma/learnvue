@@ -42,7 +42,6 @@
                 @delete-all-frames="handleClearAllMultiFrames"
 
                 :is-manual-mode="isManualMode"
-                :auto-mode-preview-urls="autoModePreviewUrls"
                 :auto-mode-connection-status="autoModeConnectionStatus"
             />
           </div>
@@ -164,7 +163,8 @@ const {
   parameterSettings,
 
   autoModeConnectionStatus,
-  autoModePreviewUrls,
+  //autoModePreviewUrls,
+  autoModeDatFileUrls,
 
   openConfigEditor,
   handleSaveConfig,

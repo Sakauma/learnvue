@@ -208,7 +208,8 @@ export function useInference(showNotificationCallback) {
             // 假设后端的自动分析API是 /infer_auto_mode
             // 它只需要算法名称，因为后端已经知道文件路径
             const response = await axios.post('/infer_auto_mode',
-                { algorithm: algorithm }, // 发送JSON数据
+                { algorithm: algorithm,
+                    mode: 2}, // 发送JSON数据
                 {
                     headers: { 'Content-Type': 'application/json' },
                     signal: abortSignal

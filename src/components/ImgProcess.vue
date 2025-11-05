@@ -46,7 +46,7 @@
             />
           </div>
           <div v-if="hasResults" class="image-display-box split-view">
-            <ImageViewerCard v-if="isManualMode" :image-url="multiFrameResultImage" label="结果图像" class="additional-viewer-card" />
+            <ImageViewerCard :image-url="multiFrameResultImage" label="结果图像" class="additional-viewer-card" />
           </div>
         </div>
         <div class="zoom-slider-layout" :class="{ 'split-view': hasResults }">
@@ -59,8 +59,8 @@
       </div>
 
       <div class="content-section data-section">
-        <ResultData :idx="currentMultiFrameIndex" :data-mode="isManualMode && allFeaturesData && Object.keys(allFeaturesData).length > 0" :data-value="allFeaturesData" />
-        <DataProductActions v-if="isManualMode" :can-perform-action="canGenerateFullProduct" @download="downloadFullProduct" @transmit="transmitFullProduct" />
+        <ResultData :idx="currentMultiFrameIndex" :data-mode="allFeaturesData && Object.keys(allFeaturesData).length > 0" :data-value="allFeaturesData" />
+        <DataProductActions :can-perform-action="canGenerateFullProduct" @download="downloadFullProduct" @transmit="transmitFullProduct" />
       </div>
 
       <div class="content-section logs-and-report-section">

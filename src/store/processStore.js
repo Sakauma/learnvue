@@ -75,7 +75,7 @@ export const useProcessStore = defineStore('process', {
         /** @type {'disconnected' | 'connecting' | 'connected' | 'error'} 自动模式SSE连接状态 */
         autoModeConnectionStatus: 'disconnected',
         /** @type {string[]} 后端推送的自动模式 .dat文件URL列表*/
-        //autoModeDatFileUrls: [],
+        autoModeDatFileUrls: [],
     }),
 
     /**
@@ -172,21 +172,21 @@ export const useProcessStore = defineStore('process', {
             this.autoModeConnectionStatus = status;
         },
 
-        // /**
-        //  * @description 设置自动模式的.dat文件URL列表
-        //  * @param {string[]} urls
-        //  */
-        // setAutoModeDatFileUrls(urls) {
-        //     if (Array.isArray(urls)) {
-        //         this.autoModeDatFileUrls = urls;
-        //         if (urls.length > 0) {
-        //             notifications.showNotification(`✅ 自动模式：已接收 ${urls.length} 个 .dat 文件列表。`);
-        //         }
-        //     } else {
-        //         this.autoModeDatFileUrls = [];
-        //         notifications.showNotification(`⚠️ 自动模式：收到的 .dat 文件列表格式不正确。`);
-        //     }
-        // },
+        /**
+         * @description 设置自动模式的.dat文件URL列表
+         * @param {string[]} urls
+         */
+        setAutoModeDatFileUrls(urls) {
+            if (Array.isArray(urls)) {
+                this.autoModeDatFileUrls = urls;
+                if (urls.length > 0) {
+                    notifications.showNotification(`✅ 自动模式：已接收 ${urls.length} 个 .dat 文件列表。`);
+                }
+            } else {
+                this.autoModeDatFileUrls = [];
+                notifications.showNotification(`⚠️ 自动模式：收到的 .dat 文件列表格式不正确。`);
+            }
+        },
 
         /**
          * @description 重置所有与多帧模式相关的状态。
@@ -198,7 +198,7 @@ export const useProcessStore = defineStore('process', {
             this.resultFilesFromApi = null;
             this.currentMultiFrameIndex = -1;
             this.allFeaturesData = null;
-            //this.autoModeDatFileUrls = [];
+            this.autoModeDatFileUrls = [];
             notifications.showNotification('所有预览和结果已清除。');
         },
 
@@ -211,7 +211,7 @@ export const useProcessStore = defineStore('process', {
             this.isLoading = false;
 
             this.autoModeConnectionStatus = 'disconnected';
-            //this.autoModeDatFileUrls = [];
+            this.autoModeDatFileUrls = [];
             //notifications.showNotification('界面数据已经清空。');
         },
 

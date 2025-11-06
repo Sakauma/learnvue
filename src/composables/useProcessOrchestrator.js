@@ -385,23 +385,23 @@ export function useProcessOrchestrator(multiFrameSystemRef, dataColumnRef, folde
         window.removeEventListener('keydown', handleKeyDown);
     });
 
-    // // 监听自动模式SSE数据
-    // watch(sseAutoUpdate.latestData, (newData) => {
-    //     if (newData && newData.datFileUrls && newData.datFileUrls.length > 0) {
-    //         store.setAutoModeDatFileUrls(newData.datFileUrls);
-    //         multiFramePreviewLoader.processAutoModeDatUrls(
-    //             newData.datFileUrls,
-    //             imageRows.value, // 传入当前的行列设置
-    //             imageCols.value
-    //         );
-    //     } else {
-    //         store.setAutoModeDatFileUrls([]);
-    //         if (!isManualMode.value) {
-    //             // 只有在自动模式下才清空帧
-    //             multiFramePreviewLoader.clearFrames();
-    //         }
-    //     }
-    // });
+    // 监听自动模式SSE数据
+    watch(sseAutoUpdate.latestData, (newData) => {
+        if (newData && newData.datFileUrls && newData.datFileUrls.length > 0) {
+            store.setAutoModeDatFileUrls(newData.datFileUrls);
+            multiFramePreviewLoader.processAutoModeDatUrls(
+                newData.datFileUrls,
+                imageRows.value, // 传入当前的行列设置
+                imageCols.value
+            );
+        } else {
+            store.setAutoModeDatFileUrls([]);
+            if (!isManualMode.value) {
+                // 只有在自动模式下才清空帧
+                multiFramePreviewLoader.clearFrames();
+            }
+        }
+    });
 
     // <-- 新增：监听自动模式 *最终结果* -->
     watch(sseAutoUpdate.latestResult, (newResult) => {
@@ -454,35 +454,35 @@ export function useProcessOrchestrator(multiFrameSystemRef, dataColumnRef, folde
     });
     // --- 新增功能结束 ---
 
-    // --- 新增功能：自动开始分析 ---
-    /**
-     * @description 侦听预览加载器(multiFramePreviewLoader)的 isProcessingList 状态。
-     * 当加载状态从 true 变为 false (即加载完成) 时，自动触发分析。
-     */
-    watch(multiFramePreviewLoader.isProcessingList, (isLoading, wasLoading) => {
-
-        // 我们只关心加载完成的那个时刻 (true -> false)
-        if (wasLoading === true && isLoading === false) {
-
-            // 确保加载后确实有帧可供分析
-            if (multiFramePreviewLoader.totalFrames.value > 0) {
-
-                // 使用 nextTick 确保 canInferInCurrentMode 状态已经更新
-                // (因为它依赖于 store 中由 multiFramePreviewLoader 更新的文件列表)
-                nextTick(() => {
-                    // 检查是否满足分析条件 (例如：自动模式已连接，或手动模式有轨迹文件)
-                    if (canInferInCurrentMode.value) {
-                        notifications.showNotification('✅ 预览加载完成，自动开始分析...');
-                        handleInfer();
-                    } else {
-                        // 例如：手动模式加载了图像，但还没选轨迹文件
-                        notifications.showNotification('✅ 预览加载完成。请提供必要文件（如轨迹文件）后点击分析。');
-                    }
-                });
-            }
-        }
-    });
-    // --- 新增功能结束 ---
+    // // --- 新增功能：自动开始分析 ---
+    // /**
+    //  * @description 侦听预览加载器(multiFramePreviewLoader)的 isProcessingList 状态。
+    //  * 当加载状态从 true 变为 false (即加载完成) 时，自动触发分析。
+    //  */
+    // watch(multiFramePreviewLoader.isProcessingList, (isLoading, wasLoading) => {
+    //
+    //     // 我们只关心加载完成的那个时刻 (true -> false)
+    //     if (wasLoading === true && isLoading === false) {
+    //
+    //         // 确保加载后确实有帧可供分析
+    //         if (multiFramePreviewLoader.totalFrames.value > 0) {
+    //
+    //             // 使用 nextTick 确保 canInferInCurrentMode 状态已经更新
+    //             // (因为它依赖于 store 中由 multiFramePreviewLoader 更新的文件列表)
+    //             nextTick(() => {
+    //                 // 检查是否满足分析条件 (例如：自动模式已连接，或手动模式有轨迹文件)
+    //                 if (canInferInCurrentMode.value) {
+    //                     notifications.showNotification('✅ 预览加载完成，自动开始分析...');
+    //                     handleInfer();
+    //                 } else {
+    //                     // 例如：手动模式加载了图像，但还没选轨迹文件
+    //                     notifications.showNotification('✅ 预览加载完成。请提供必要文件（如轨迹文件）后点击分析。');
+    //                 }
+    //             });
+    //         }
+    //     }
+    // });
+    // // --- 新增功能结束 ---
 
     // --- 6. 返回所有需要暴露给组件的属性和方法 ---
     return {

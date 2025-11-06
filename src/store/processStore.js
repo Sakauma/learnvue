@@ -75,7 +75,7 @@ export const useProcessStore = defineStore('process', {
         /** @type {'disconnected' | 'connecting' | 'connected' | 'error'} 自动模式SSE连接状态 */
         autoModeConnectionStatus: 'disconnected',
         /** @type {string[]} 后端推送的自动模式 .dat文件URL列表*/
-        autoModeDatFileUrls: [],
+        //autoModeDatFileUrls: [],
     }),
 
     /**
@@ -121,8 +121,8 @@ export const useProcessStore = defineStore('process', {
             } else {
                 // 自动模式
                 // 自动模式：必须已连接SSE，并且后端已推送了可用的 .dat 文件 URL
-                //return state.autoModeConnectionStatus === 'connected' && state.autoModePreviewUrls.length > 0;
-                return state.autoModeConnectionStatus === 'connected' && state.autoModeDatFileUrls.length > 0;
+                //return state.autoModeConnectionStatus === 'connected' && state.autoModeDatFileUrls.length > 0;
+                return false;
             }
         },
     },
@@ -172,21 +172,21 @@ export const useProcessStore = defineStore('process', {
             this.autoModeConnectionStatus = status;
         },
 
-        /**
-         * @description 设置自动模式的.dat文件URL列表
-         * @param {string[]} urls
-         */
-        setAutoModeDatFileUrls(urls) {
-            if (Array.isArray(urls)) {
-                this.autoModeDatFileUrls = urls;
-                if (urls.length > 0) {
-                    notifications.showNotification(`✅ 自动模式：已接收 ${urls.length} 个 .dat 文件列表。`);
-                }
-            } else {
-                this.autoModeDatFileUrls = [];
-                notifications.showNotification(`⚠️ 自动模式：收到的 .dat 文件列表格式不正确。`);
-            }
-        },
+        // /**
+        //  * @description 设置自动模式的.dat文件URL列表
+        //  * @param {string[]} urls
+        //  */
+        // setAutoModeDatFileUrls(urls) {
+        //     if (Array.isArray(urls)) {
+        //         this.autoModeDatFileUrls = urls;
+        //         if (urls.length > 0) {
+        //             notifications.showNotification(`✅ 自动模式：已接收 ${urls.length} 个 .dat 文件列表。`);
+        //         }
+        //     } else {
+        //         this.autoModeDatFileUrls = [];
+        //         notifications.showNotification(`⚠️ 自动模式：收到的 .dat 文件列表格式不正确。`);
+        //     }
+        // },
 
         /**
          * @description 重置所有与多帧模式相关的状态。
@@ -198,7 +198,7 @@ export const useProcessStore = defineStore('process', {
             this.resultFilesFromApi = null;
             this.currentMultiFrameIndex = -1;
             this.allFeaturesData = null;
-            this.autoModeDatFileUrls = [];
+            //this.autoModeDatFileUrls = [];
             notifications.showNotification('所有预览和结果已清除。');
         },
 
@@ -211,7 +211,7 @@ export const useProcessStore = defineStore('process', {
             this.isLoading = false;
 
             this.autoModeConnectionStatus = 'disconnected';
-            this.autoModeDatFileUrls = [];
+            //this.autoModeDatFileUrls = [];
             //notifications.showNotification('界面数据已经清空。');
         },
 
@@ -220,7 +220,8 @@ export const useProcessStore = defineStore('process', {
          * @description 执行多帧（文件夹）识别的异步操作。
          */
         async inferMultiFrame(abortSignal) {
-            if (!this.canInferInCurrentMode) return;
+            //if (!this.canInferInCurrentMode) return;
+            if (!this.canInferInCurrentMode || !this.isManualMode) return;
             // 重置状态
             this.isLoading = true;
             this.allFeaturesData = null;
@@ -229,22 +230,29 @@ export const useProcessStore = defineStore('process', {
             this.resultFilesFromApi = null;
             this.currentMultiFrameIndex = -1;
 
-            let result;
-            if (this.selectedMode === 'manual') {
-                result = await inferenceHandler.performMultiFrameInference(
-                    this.multiFrameFiles,
-                    this.selectedSpecificAlgorithm,
-                    2,
-                    this.trajectoryFile, // trackFile
-                    abortSignal
-                );
-            } else {
-                // --- 自动模式逻辑  ---
-                result = await inferenceHandler.performAutoModeInference(
-                    this.selectedSpecificAlgorithm,
-                    abortSignal
-                );
-            }
+            // let result;
+            // if (this.selectedMode === 'manual') {
+            //     result = await inferenceHandler.performMultiFrameInference(
+            //         this.multiFrameFiles,
+            //         this.selectedSpecificAlgorithm,
+            //         2,
+            //         this.trajectoryFile, // trackFile
+            //         abortSignal
+            //     );
+            // } else {
+            //     // --- 自动模式逻辑  ---
+            //     result = await inferenceHandler.performAutoModeInference(
+            //         this.selectedSpecificAlgorithm,
+            //         abortSignal
+            //     );
+            // }
+            let result = await inferenceHandler.performMultiFrameInference(
+                this.multiFrameFiles,
+                this.selectedSpecificAlgorithm,
+                2,
+                this.trajectoryFile, // trackFile
+                abortSignal
+            );
 
             if (result?.success && result.data) {
                 this.resultFolderPathFromApi = result.data.resultPath || '';
@@ -264,6 +272,42 @@ export const useProcessStore = defineStore('process', {
             }
             this.isLoading = false;
         },
+
+        // <-- 新增：处理自动模式最终结果的 action -->
+        /**
+         * @description (自动模式) 处理后端推送的 SSE 最终结果
+         * @param {object} resultData - 后端推送的 MultiFrameResultResponse 对象
+         */
+        async processAutoModeResult(resultData) {
+            if (resultData) {
+                notifications.showNotification('✅ 自动模式任务完成，收到结果！');
+                this.isLoading = true; // 在处理结果时显示加载
+
+                // 重置旧数据
+                this.allFeaturesData = null;
+
+                // 填充新数据
+                this.resultFolderPathFromApi = resultData.resultPath || '';
+                this.resultFilesFromApi = resultData.resultFiles || null;
+                this.analysisId = resultData.analysisId || '';
+
+                if (this.numberOfResultFrames > 0) {
+                    this.currentMultiFrameIndex = 0;
+                    if (this.resultFolderPathFromApi) {
+                        // 异步获取图表数据
+                        await this._fetchFeatureDataForCharts();
+                    } else {
+                        notifications.showNotification('⚠️ 未能获取结果文件夹路径，无法加载图表数据。', 2500);
+                    }
+                } else {
+                    notifications.showNotification('识别完成，但未返回有效的结果文件列表。', 2500);
+                }
+                this.isLoading = false; // 处理完成，隐藏加载
+            } else {
+                notifications.showNotification('⚠️ 收到空的自动模式结果。', 2500);
+            }
+        },
+        // <-- 修改结束 -->
 
         /**
          * @description (内部方法) 根据结果路径从后端获取用于图表的特征数据。

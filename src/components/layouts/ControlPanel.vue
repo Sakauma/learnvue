@@ -5,12 +5,6 @@
       <el-col :span="24" class="left-menu-buttons">
 
         <template v-if="isManualMode">
-          <el-button
-              class="control-button"
-              @click="$emit('infer')"
-              :disabled="isLoading || !canInferInCurrentMode">
-            分析数据
-          </el-button>
         </template>
 
         <template v-else>
@@ -22,13 +16,6 @@
             {{ autoModeConnectionText }}
           </el-button>
 
-          <el-button
-              v-if="autoModeConnectionStatus === 'connected'"
-              class="control-button"
-              @click="$emit('infer')"
-              :disabled="isLoading || !canInferInCurrentMode">
-            分析数据
-          </el-button>
         </template>
 
         <el-button class="control-button" @click="$emit('open-settings')">

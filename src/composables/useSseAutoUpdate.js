@@ -7,6 +7,7 @@ import { ref, readonly, shallowRef, onUnmounted } from 'vue';
 export function useSseAutoUpdate() {
     // 存储从后端收到的最新数据
     const latestData = shallowRef(null);
+    const latestResult = shallowRef(null);
     const connectionStatus = ref('disconnected'); // 'disconnected', 'connecting', 'connected', 'error'
     const eventSource = shallowRef(null);
     let reconnectTimer = null;
@@ -21,6 +22,7 @@ export function useSseAutoUpdate() {
             eventSource.value = null;
         }
         connectionStatus.value = 'disconnected';
+        latestResult.value = null;
     };
 
     const connect = () => {
@@ -50,6 +52,18 @@ export function useSseAutoUpdate() {
                 }
             });
 
+            // <-- 新增：监听 'auto_mode_result' 事件 -->
+            eventSource.value.addEventListener('auto_mode_result', (event) => {
+                try {
+                    // 假设后端发送的是JSON字符串
+                    const data = JSON.parse(event.data);
+                    latestResult.value = data; // 存储最新结果
+                } catch (e) {
+                    console.error('SSE auto_mode_result: 解析JSON失败', e);
+                    latestResult.value = null; // 解析失败则清空
+                }
+            });
+
             eventSource.value.onerror = () => {
                 connectionStatus.value = 'error';
                 if (eventSource.value) {
@@ -70,6 +84,7 @@ export function useSseAutoUpdate() {
 
     return {
         latestData: readonly(latestData),
+        latestResult: readonly(latestResult),
         connectionStatus: readonly(connectionStatus),
         connect,
         disconnect,

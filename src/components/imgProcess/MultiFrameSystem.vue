@@ -139,9 +139,9 @@ const placeholderText = computed(() => {
       case 'connecting': return '正在连接自动服务...';
       case 'connected':
         // 检查 loader 的状态
-        if (props.loader.isProcessingList.value) return '正在下载和解析 .dat 文件...';
-        if (props.loader.totalFrames.value > 0) return '自动数据已加载，请点击分析';
-        return '已连接，等待数据推送...';
+        //if (props.loader.isProcessingList.value) return '正在下载和解析 .dat 文件...';
+        //if (props.loader.totalFrames.value > 0) return '自动数据已加载，请点击分析';
+        return '已连接，等待后端任务...';
       case 'error': return '自动服务连接错误';
       case 'disconnected':
       default:

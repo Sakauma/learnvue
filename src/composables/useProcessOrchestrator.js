@@ -85,7 +85,7 @@ export function useProcessOrchestrator(multiFrameSystemRef, dataColumnRef, folde
     const { logs: parsedLogs, connectionStatus, connectionAttempts, connect, disconnect, clearLogs } = useSseLogs('/sse/logs');
 
     // 初始化自动模式SSE
-    const sseAutoUpdate = useSseAutoUpdate()
+    const sseAutoUpdate = useSseAutoUpdate();
 
     watch(sseAutoUpdate.connectionStatus, (newStatus) => {
         store.setAutoModeConnectionStatus(newStatus);
@@ -385,23 +385,34 @@ export function useProcessOrchestrator(multiFrameSystemRef, dataColumnRef, folde
         window.removeEventListener('keydown', handleKeyDown);
     });
 
-    // 监听自动模式SSE数据
-    watch(sseAutoUpdate.latestData, (newData) => {
-        if (newData && newData.datFileUrls && newData.datFileUrls.length > 0) {
-            store.setAutoModeDatFileUrls(newData.datFileUrls);
-            multiFramePreviewLoader.processAutoModeDatUrls(
-                newData.datFileUrls,
-                imageRows.value, // 传入当前的行列设置
-                imageCols.value
-            );
-        } else {
-            store.setAutoModeDatFileUrls([]);
-            if (!isManualMode.value) {
-                // 只有在自动模式下才清空帧
-                multiFramePreviewLoader.clearFrames();
-            }
+    // // 监听自动模式SSE数据
+    // watch(sseAutoUpdate.latestData, (newData) => {
+    //     if (newData && newData.datFileUrls && newData.datFileUrls.length > 0) {
+    //         store.setAutoModeDatFileUrls(newData.datFileUrls);
+    //         multiFramePreviewLoader.processAutoModeDatUrls(
+    //             newData.datFileUrls,
+    //             imageRows.value, // 传入当前的行列设置
+    //             imageCols.value
+    //         );
+    //     } else {
+    //         store.setAutoModeDatFileUrls([]);
+    //         if (!isManualMode.value) {
+    //             // 只有在自动模式下才清空帧
+    //             multiFramePreviewLoader.clearFrames();
+    //         }
+    //     }
+    // });
+
+    // <-- 新增：监听自动模式 *最终结果* -->
+    watch(sseAutoUpdate.latestResult, (newResult) => {
+        // 确保是自动模式，并且有新结果
+        if (newResult && !isManualMode.value) {
+            console.log('Orchestrator: 收到自动模式最终结果', newResult);
+            // 调用 Store 中新创建的 action 来处理结果
+            store.processAutoModeResult(newResult);
         }
     });
+    // <-- 修改结束 -->
 
     watch(multiFramePreviewLoader.fileList, (newFrameList) => {
         if (newFrameList && newFrameList.length > 0) {
@@ -423,6 +434,25 @@ export function useProcessOrchestrator(multiFrameSystemRef, dataColumnRef, folde
             multiFrameSystemRef.value.syncPreviewFrame(newIndex);
         }
     });
+
+    // --- 新增功能：自动开始分析 ---
+    /**
+     * ...
+     */
+    watch(multiFramePreviewLoader.isProcessingList, (isLoading, wasLoading) => {
+        // <-- 修改点：添加模式检查 -->
+        // 我们只关心加载完成的那个时刻 (true -> false)
+        if (wasLoading === true && isLoading === false) {
+            // --- 新增：自动模式下不触发此逻辑 ---
+            if (!isManualMode.value) return;
+            // <-- 修改结束 -->
+            // 确保加载后确实有帧可供分析
+            if (multiFramePreviewLoader.totalFrames.value > 0) {
+// ... (不变) ...
+            }
+        }
+    });
+    // --- 新增功能结束 ---
 
     // --- 新增功能：自动开始分析 ---
     /**

@@ -43,7 +43,6 @@ export function useInference(showNotificationCallback) {
         textResults.value = [];
         // 显示开始识别的通知
         showNotificationCallback(`🚧 正在使用 ${algorithm} 进行识别`);
-
         // 创建FormData对象用于发送表单数据
         const formData = new FormData();
         formData.append('file', file);
@@ -55,20 +54,17 @@ export function useInference(showNotificationCallback) {
         if (cropData) {
             formData.append('cropData', JSON.stringify(cropData));
         }
-
         try {
             // 发送POST请求到/infer端点
             const response = await axios.post('/infer', formData, {
                 headers: { 'Content-Type': 'multipart/form-data' },
                 signal: abortSignal,
             });
-
             // 处理成功响应
             if (response.data.processedImage) {
                 // 设置处理后的图像URL
                 resultImageUrl.value = `data:image/png;base64,${response.data.processedImage}`;
             }
-
             // 准备文本结果
             const tempTextResults = [];
             if (response.data.algorithm) {
@@ -82,7 +78,6 @@ export function useInference(showNotificationCallback) {
             }
             // 更新文本结果
             textResults.value = tempTextResults;
-
             // 提取图表Y轴值
             let newChartYValues = null;
             if (response.data && response.data.result && Array.isArray(response.data.result)) {
@@ -90,7 +85,6 @@ export function useInference(showNotificationCallback) {
                     newChartYValues = response.data.result;
                 }
             }
-
             // 显示成功通知
             showNotificationCallback(response.data.message || '✅ 识别成功！');
             return { success: true, data: response.data, newChartValues: newChartYValues };
@@ -146,12 +140,7 @@ export function useInference(showNotificationCallback) {
             formData.append('files', file);
         });
         formData.append('algorithm', algorithm);
-
-        // 添加 mode 参数
         formData.append('mode', String(mode));
-
-        // 添加 trackFile 参数（如果存在）
-        // 即使 mode=1 且 trackFile 为 null，后端 @RequestPart(required = false) 也能正确处理
         if (trackFile) {
             formData.append('trackFile', trackFile);
         }
@@ -189,55 +178,6 @@ export function useInference(showNotificationCallback) {
         }
     }
 
-    // /**
-    //  * 执行自动模式识别操作（不上传文件）
-    //  * @param {string} algorithm - 使用的算法名称
-    //  * @param {Object} abortSignal - AbortController的signal
-    //  * @returns {Promise<Object>} - 返回包含识别结果的对象
-    //  */
-    // async function performAutoModeInference(algorithm, abortSignal) {
-    //     if (!algorithm) {
-    //         showNotificationCallback('请选择一个算法。');
-    //         return { success: false, error: 'Missing algorithm' };
-    //     }
-    //
-    //     isLoading.value = true;
-    //     showNotificationCallback(`🚧 正在执行自动模式分析...`);
-    //
-    //     try {
-    //         // 假设后端的自动分析API是 /infer_auto_mode
-    //         // 它只需要算法名称，因为后端已经知道文件路径
-    //         const response = await axios.post('/infer_auto_mode',
-    //             { algorithm: algorithm,
-    //                 mode: 2}, // 发送JSON数据
-    //             {
-    //                 headers: { 'Content-Type': 'application/json' },
-    //                 signal: abortSignal
-    //             }
-    //         );
-    //
-    //         if (response.data && response.data.success) {
-    //             showNotificationCallback(response.data.message || '✅ 自动模式分析成功！');
-    //             return { success: true, data: response.data };
-    //         } else {
-    //             const errorMessage = response.data?.message || '后端处理失败。';
-    //             showNotificationCallback(`❌ 自动模式分析失败: ${errorMessage}`);
-    //             return { success: false, error: errorMessage };
-    //         }
-    //     } catch (error) {
-    //         if (axios.isCancel(error)) {
-    //             showNotificationCallback('操作已取消');
-    //             return { success: false, error: 'Cancelled' };
-    //         }
-    //         console.error('自动模式分析请求失败:', error);
-    //         const errorMessage = error.response?.data?.message || error.message || '请求失败。';
-    //         showNotificationCallback(`❌ 自动模式分析失败: ${errorMessage}`);
-    //         return { success: false, error: errorMessage };
-    //     } finally {
-    //         isLoading.value = false;
-    //     }
-    // }
-
     // 返回所有响应式变量和方法
     return {
         isLoading: readonly(isLoading),
@@ -246,6 +186,5 @@ export function useInference(showNotificationCallback) {
         uploadProgress: readonly(uploadProgress),
         performInference,
         performMultiFrameInference,
-        //performAutoModeInference,
     };
 }

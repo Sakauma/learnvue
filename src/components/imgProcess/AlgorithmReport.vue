@@ -84,7 +84,6 @@ defineExpose({
 });
 </script>
 
-
 <style scoped>
 .report-container {
   font-family: "Microsoft YaHei", sans-serif;

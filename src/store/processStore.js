@@ -119,7 +119,6 @@ export const useProcessStore = defineStore('process', {
                 // 手动模式
                 return state.multiFrameFiles.length > 0 && !!state.trajectoryFile;
             } else {
-                // 自动模式
                 // 自动模式：必须已连接SSE，并且后端已推送了可用的 .dat 文件 URL
                 //return state.autoModeConnectionStatus === 'connected' && state.autoModeDatFileUrls.length > 0;
                 return false;
@@ -206,7 +205,6 @@ export const useProcessStore = defineStore('process', {
          * @description 重置所有模式的状态，通常在模式切换时调用。
          */
         resetAllState() {
-            //this.resetSingleFrameData();
             this.resetMultiFrameData();
             this.isLoading = false;
 
@@ -220,7 +218,6 @@ export const useProcessStore = defineStore('process', {
          * @description 执行多帧（文件夹）识别的异步操作。
          */
         async inferMultiFrame(abortSignal) {
-            //if (!this.canInferInCurrentMode) return;
             if (!this.canInferInCurrentMode || !this.isManualMode) return;
             // 重置状态
             this.isLoading = true;
@@ -230,22 +227,6 @@ export const useProcessStore = defineStore('process', {
             this.resultFilesFromApi = null;
             this.currentMultiFrameIndex = -1;
 
-            // let result;
-            // if (this.selectedMode === 'manual') {
-            //     result = await inferenceHandler.performMultiFrameInference(
-            //         this.multiFrameFiles,
-            //         this.selectedSpecificAlgorithm,
-            //         2,
-            //         this.trajectoryFile, // trackFile
-            //         abortSignal
-            //     );
-            // } else {
-            //     // --- 自动模式逻辑  ---
-            //     result = await inferenceHandler.performAutoModeInference(
-            //         this.selectedSpecificAlgorithm,
-            //         abortSignal
-            //     );
-            // }
             let result = await inferenceHandler.performMultiFrameInference(
                 this.multiFrameFiles,
                 this.selectedSpecificAlgorithm,
@@ -273,7 +254,6 @@ export const useProcessStore = defineStore('process', {
             this.isLoading = false;
         },
 
-        // <-- 新增：处理自动模式最终结果的 action -->
         /**
          * @description (自动模式) 处理后端推送的 SSE 最终结果
          * @param {object} resultData - 后端推送的 MultiFrameResultResponse 对象
@@ -282,10 +262,8 @@ export const useProcessStore = defineStore('process', {
             if (resultData) {
                 notifications.showNotification('✅ 自动模式任务完成，收到结果！');
                 this.isLoading = true; // 在处理结果时显示加载
-
                 // 重置旧数据
                 this.allFeaturesData = null;
-
                 // 填充新数据
                 this.resultFolderPathFromApi = resultData.resultPath || '';
                 this.resultFilesFromApi = resultData.resultFiles || null;
@@ -307,7 +285,6 @@ export const useProcessStore = defineStore('process', {
                 notifications.showNotification('⚠️ 收到空的自动模式结果。', 2500);
             }
         },
-        // <-- 修改结束 -->
 
         /**
          * @description (内部方法) 根据结果路径从后端获取用于图表的特征数据。

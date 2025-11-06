@@ -179,7 +179,6 @@ const clearLogs = () => {
 
 </script>
 
-
 <style scoped>
 .log-container {
   font-family: "Microsoft YaHei", sans-serif;

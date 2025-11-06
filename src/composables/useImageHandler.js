@@ -38,7 +38,6 @@ async function generateMD5ForFile(file) {
         reader.readAsArrayBuffer(file);
     });
 }
-
 /**
  * 文件处理钩子函数，提供文件选择和删除功能
  * @param {Function} showNotificationCallback - 显示通知的回调函数
@@ -50,7 +49,6 @@ export function useImageHandler(showNotificationCallback) {
     const originalFile = ref(null);   // 存储原始文件对象
     const fileMD5 = ref('');          // 存储文件的MD5哈希值
     const imageName = ref('');        // 存储文件名
-
     /**
      * 处理文件选择
      * @param {File} file - 用户选择的文件
@@ -64,7 +62,6 @@ export function useImageHandler(showNotificationCallback) {
             console.warn('handleFileSelected called with no file.');
             return;
         }
-
         // 重置状态
         if (imageUrl.value && imageUrl.value.startsWith('blob:')) {
             // 如果存在Blob URL，释放它
@@ -75,7 +72,6 @@ export function useImageHandler(showNotificationCallback) {
         originalFile.value = null;
         fileMD5.value = '';
         imageName.value = '';
-
         try {
             // 根据文件类型处理
             if (file.type.startsWith('image/')) {
@@ -96,14 +92,12 @@ export function useImageHandler(showNotificationCallback) {
                 showNotificationCallback('❌ 不支持的文件类型。请选择图像文件 (image/*) 或 .dat 文件。');
                 return;
             }
-
             // 如果成功设置图像URL，更新其他状态
             if (imageUrl.value) {
                 originalFile.value = file;
                 imageName.value = file.name;
                 fileMD5.value = await generateMD5ForFile(file);
             }
-
         } catch (error) {
             // 处理过程中的错误
             showNotificationCallback('❌ 处理文件时发生错误。');
@@ -117,7 +111,6 @@ export function useImageHandler(showNotificationCallback) {
             imageName.value = '';
         }
     }
-
     /**
      * 删除当前图像
      */
@@ -132,7 +125,6 @@ export function useImageHandler(showNotificationCallback) {
         fileMD5.value = '';
         imageName.value = '';
     }
-
     // 返回所有状态和方法
     return {
         imageUrl,

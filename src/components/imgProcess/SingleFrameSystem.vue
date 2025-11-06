@@ -72,7 +72,6 @@
   </div>
 </template>
 
-
 <script setup>
 import { ref } from 'vue';
 import { ElButton } from 'element-plus';

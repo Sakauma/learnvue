@@ -96,5 +96,4 @@ watch(() => props.algorithmType, () => {
   height: auto;
   text-align: left;
 }
-
 </style>

@@ -73,8 +73,6 @@ export function useSseLogs(url) {
         try {
             // 创建新的EventSource实例
             eventSource.value = new EventSource(url);
-            //const fullSseUrl = import.meta.env.VITE_API_BASE_URL + url;
-            //eventSource.value = new EventSource(fullSseUrl);
 
             // 监听连接成功事件
             eventSource.value.onopen = () => {
@@ -121,8 +119,8 @@ export function useSseLogs(url) {
     // 使用readonly确保外部无法直接修改返回的ref值
     return {
         logs: readonly(logs),               // 日志数组（只读）
-        connectionStatus: readonly(connectionStatus), // 连接状态（只读）
-        connectionAttempts: readonly(connectionAttempts), // 连接尝试次数（只读）
+        connectionStatus: readonly(connectionStatus), // 连接状态
+        connectionAttempts: readonly(connectionAttempts), // 连接尝试次数
         connect,                            // 连接函数
         disconnect,                         // 断开连接函数
         clearLogs,                          // 清空日志函数

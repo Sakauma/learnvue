@@ -45,5 +45,4 @@
   min-height: 0;
   display: flex;
 }
-
 </style>

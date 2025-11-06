@@ -26,7 +26,6 @@
   </div>
 </template>
 
-
 <script setup>
 import { ref, watch, onMounted } from 'vue';
 import { ElSelect, ElOption } from 'element-plus';

@@ -43,7 +43,6 @@ export function useChart(chartRef, chartIndex) {
         if (!chartRef.value) {
             return;
         }
-
         try {
             chartInstance = echarts.init(chartRef.value);
             isInitialized.value = true;
@@ -51,7 +50,6 @@ export function useChart(chartRef, chartIndex) {
             console.error(`initChart: Failed to initialize ECharts for index ${chartIndex}:`, e);
             return;
         }
-
         // 初始化空的坐标系，设定默认的X轴和Y轴范围
         const initialOption = {
             xAxis: {
@@ -199,7 +197,6 @@ export function useChart(chartRef, chartIndex) {
                     }
                 ]
             };
-
             // ECharts会重新计算范围。
             chartInstance.setOption(newOption);
         }
@@ -208,7 +205,6 @@ export function useChart(chartRef, chartIndex) {
     setTimeout(() => {
         initChart(); // 初始化坐标系
     }, 0);
-
     const resizeChart = () => { if (chartInstance && !chartInstance.isDisposed()) chartInstance.resize(); };
 
     onMounted(() => {

@@ -18,7 +18,6 @@
     >
       <!-- 表单项，用于分隔区域 -->
       <el-form-item label="[Region]" class="form-section-header" />
-
       <!-- 表单项，用于输入x坐标 -->
       <el-form-item label="x" prop="region.x">
         <el-input-number v-model="formData.region.x" :min="0" controls-position="right" />
@@ -35,10 +34,8 @@
       <el-form-item label="height" prop="region.height">
         <el-input-number v-model="formData.region.height" :min="1" controls-position="right" />
       </el-form-item>
-
       <!-- 表单项，用于分隔算法部分 -->
       <el-form-item label="[ALGORITHM]" class="form-section-header" />
-
       <!-- 表单项，用于输入学习率 -->
       <el-form-item label="Learning Rate (lr)" prop="algorithm.lr">
         <el-input-number v-model="formData.algorithm.lr" :precision="5" :step="0.00001" controls-position="right" />
@@ -56,7 +53,6 @@
     </template>
   </el-dialog>
 </template>
-
 
 <script setup>
 import { ref, watch } from 'vue';

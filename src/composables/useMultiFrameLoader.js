@@ -166,7 +166,7 @@ export function useMultiFrameLoader(showNotificationCallback) {
 
         if (!rows || rows <= 0 || !cols || cols <= 0) {
             showNotificationCallback(`❌ 请提供有效的图像行数(当前: ${rows})和列数(当前: ${cols})。`);
-            isProcessingList.value = false; // <--- 修正：2. 确保在退出前重置状态
+            isProcessingList.value = false;
             return;
         }
         clearFrames();
@@ -194,24 +194,19 @@ export function useMultiFrameLoader(showNotificationCallback) {
             } else if (fileNameLower.endsWith('.dat')) {
                 return processDatFile(file, rows, cols);
             }
-            return Promise.resolve([]); // 不支持的文件类型
+            return Promise.resolve([]);
         });
-
         try {
             // 等待所有文件的处理Promise完成
             const nestedResults = await Promise.all(processingPromises);
-            // 将嵌套的结果数组扁平化成一个列表
             const expandedList = nestedResults.flat();
-            //console.log('[loader] 所有文件处理完成，生成扁平化预览列表:', expandedList);
 
             if (expandedList.length === 0) {
                 showNotificationCallback('⚠️ 未找到支持的图像文件。');
                 return;
             }
-
             fileList.value = expandedList;
             showNotificationCallback(`✅ 已加载 ${expandedList.length} 帧图像。`);
-
             if (fileList.value.length > 0) {
                 await loadFrame(0);
             }
@@ -256,7 +251,6 @@ export function useMultiFrameLoader(showNotificationCallback) {
         }
     }
 
-    // (--- 新增：处理自动模式 .dat 文件 URL 列表的函数 ---)
     /**
      * @description (自动模式) 异步获取并处理 .dat 文件 URL 列表
      * @param {string[]} urls - 后端推送的 .dat 文件 URL (e.g., /api/get_auto_dat_file?taskId=1)
@@ -280,7 +274,6 @@ export function useMultiFrameLoader(showNotificationCallback) {
         currentImageRows.value = rows;
         currentImageCols.value = cols;
 
-        // 为每个 URL 创建一个 fetch 和 processDatFile 的 Promise
         const processingPromises = urls.map(async (url) => {
             try {
                 showNotificationCallback(`🚧 正在下载自动模式文件: ${url}`);
@@ -320,7 +313,6 @@ export function useMultiFrameLoader(showNotificationCallback) {
                 showNotificationCallback('⚠️ 自动模式：未找到支持的图像文件。');
                 return;
             }
-
             fileList.value = expandedList;
             showNotificationCallback(`✅ 自动模式：已加载 ${expandedList.length} 帧图像。`);
 

@@ -14,17 +14,14 @@
         @infer="handleInfer"
         @open-settings="isSettingsDialogVisible = true"
         @open-config-editor="openConfigEditor"
-
         :auto-mode-connection-status="autoModeConnectionStatus"
         @toggle-auto-mode-connection="toggleAutoModeConnection"
     />
     <input type="file" ref="folderInputRef" style="display: none" @change="handleFolderSelectedViaDialog"/>
     <div class="main-content-wrapper">
-
       <div class="content-section image-section">
         <div class="viewer-wrapper">
           <div class="image-display-box" :class="{ 'split-view': hasResults }">
-
             <MultiFrameSystem
                 class="viewer-content"
                 ref="multiFrameSystemRef"
@@ -40,7 +37,6 @@
                 @zoom-in="zoomIn"
                 @zoom-out="zoomOut"
                 @delete-all-frames="handleClearAllMultiFrames"
-
                 :is-manual-mode="isManualMode"
                 :auto-mode-connection-status="autoModeConnectionStatus"
             />
@@ -71,22 +67,18 @@
           <AlgorithmReport :logs="parsedLogs" ref="dataColumnRef" />
         </div>
       </div>
-
     </div>
-
     <ParameterSettingsDialog
         v-model:visible="isSettingsDialogVisible"
         :settings="parameterSettings"
         @save="handleSaveSettings"
     />
-
     <IniConfigEditor
         :visible="isConfigEditorVisible"
         @update:visible="isConfigEditorVisible = $event"
         :initial-data="currentConfig"
         @save="handleSaveConfig"
     />
-
     <div id="version-info-bgd">
       <el-button @click="isVersionDialogVisible = true" :icon="Setting" class="custom-corner-button" title="关于软件"></el-button>
     </div>
@@ -163,7 +155,6 @@ const {
   parameterSettings,
 
   autoModeConnectionStatus,
-  //autoModePreviewUrls,
   autoModeDatFileUrls,
 
   openConfigEditor,
@@ -323,5 +314,4 @@ const hasResults = computed(() => {
   flex: 1; /* 两边各占一半 */
   min-height: 0;
 }
-
 </style>

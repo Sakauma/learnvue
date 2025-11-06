@@ -33,7 +33,7 @@ export function useSseAutoUpdate() {
         try {
             // 注意：我们假设后端的SSE URL是 '/sse/auto_updates'
             // 我们还需要从 .env 文件读取基础URL
-            const fullSseUrl = `${import.meta.env.VITE_API_BASE_URL}/sse/auto_updates`;
+            const fullSseUrl = '/sse/auto_updates';
             eventSource.value = new EventSource(fullSseUrl);
 
             eventSource.value.onopen = () => {

@@ -21,7 +21,6 @@ export function useDataProduct(allFeaturesDataRef, resultFolderPathFromApi) {
         'contrast': '对比度',
         'entropy': '信息熵',
         'homogeneity': '同质性'
-        // ... 其他键名映射
     };
 
     /**

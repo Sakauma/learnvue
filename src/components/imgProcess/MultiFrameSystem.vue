@@ -206,7 +206,6 @@ function syncPreviewFrame(index) {
 }
 // 暴露 syncPreviewFrame 方法，以便 Orchestrator 可以调用它
 defineExpose({ syncPreviewFrame });
-
 </script>
 
 <style scoped>

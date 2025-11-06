@@ -4,7 +4,6 @@
   <div id="home-page">
     <!-- 欢迎标语 -->
     <p id="home-logo">欢迎来到 XJYTXFX 软件</p>
-
     <!-- 按钮容器 -->
     <div id="home-buttons">
       <!-- 开始识别按钮，点击后跳转到识别页面 -->

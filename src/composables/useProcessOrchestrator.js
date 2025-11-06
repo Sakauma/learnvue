@@ -403,7 +403,6 @@ export function useProcessOrchestrator(multiFrameSystemRef, dataColumnRef, folde
         }
     });
 
-    // <-- 新增：监听自动模式 *最终结果* -->
     watch(sseAutoUpdate.latestResult, (newResult) => {
         // 确保是自动模式，并且有新结果
         if (newResult && !isManualMode.value) {
@@ -412,7 +411,6 @@ export function useProcessOrchestrator(multiFrameSystemRef, dataColumnRef, folde
             store.processAutoModeResult(newResult);
         }
     });
-    // <-- 修改结束 -->
 
     watch(multiFramePreviewLoader.fileList, (newFrameList) => {
         if (newFrameList && newFrameList.length > 0) {
@@ -435,54 +433,14 @@ export function useProcessOrchestrator(multiFrameSystemRef, dataColumnRef, folde
         }
     });
 
-    // --- 新增功能：自动开始分析 ---
-    /**
-     * ...
-     */
     watch(multiFramePreviewLoader.isProcessingList, (isLoading, wasLoading) => {
-        // <-- 修改点：添加模式检查 -->
-        // 我们只关心加载完成的那个时刻 (true -> false)
         if (wasLoading === true && isLoading === false) {
-            // --- 新增：自动模式下不触发此逻辑 ---
             if (!isManualMode.value) return;
-            // <-- 修改结束 -->
             // 确保加载后确实有帧可供分析
             if (multiFramePreviewLoader.totalFrames.value > 0) {
-// ... (不变) ...
             }
         }
     });
-    // --- 新增功能结束 ---
-
-    // // --- 新增功能：自动开始分析 ---
-    // /**
-    //  * @description 侦听预览加载器(multiFramePreviewLoader)的 isProcessingList 状态。
-    //  * 当加载状态从 true 变为 false (即加载完成) 时，自动触发分析。
-    //  */
-    // watch(multiFramePreviewLoader.isProcessingList, (isLoading, wasLoading) => {
-    //
-    //     // 我们只关心加载完成的那个时刻 (true -> false)
-    //     if (wasLoading === true && isLoading === false) {
-    //
-    //         // 确保加载后确实有帧可供分析
-    //         if (multiFramePreviewLoader.totalFrames.value > 0) {
-    //
-    //             // 使用 nextTick 确保 canInferInCurrentMode 状态已经更新
-    //             // (因为它依赖于 store 中由 multiFramePreviewLoader 更新的文件列表)
-    //             nextTick(() => {
-    //                 // 检查是否满足分析条件 (例如：自动模式已连接，或手动模式有轨迹文件)
-    //                 if (canInferInCurrentMode.value) {
-    //                     notifications.showNotification('✅ 预览加载完成，自动开始分析...');
-    //                     handleInfer();
-    //                 } else {
-    //                     // 例如：手动模式加载了图像，但还没选轨迹文件
-    //                     notifications.showNotification('✅ 预览加载完成。请提供必要文件（如轨迹文件）后点击分析。');
-    //                 }
-    //             });
-    //         }
-    //     }
-    // });
-    // // --- 新增功能结束 ---
 
     // --- 6. 返回所有需要暴露给组件的属性和方法 ---
     return {

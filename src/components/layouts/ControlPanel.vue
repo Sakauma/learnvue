@@ -3,10 +3,8 @@
   <div class="control-panel-wrapper">
     <el-row class="menu-button-row" justify="start" align="middle">
       <el-col :span="24" class="left-menu-buttons">
-
         <template v-if="isManualMode">
         </template>
-
         <template v-else>
           <el-button
               class="control-button"
@@ -15,9 +13,7 @@
               :disabled="isLoading">
             {{ autoModeConnectionText }}
           </el-button>
-
         </template>
-
         <el-button class="control-button" @click="$emit('open-settings')">
           参数设置
         </el-button>

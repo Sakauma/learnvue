@@ -45,7 +45,6 @@ function processSingleFrame(frameBuffer, rows, cols) {
         imageData.data[i * 4 + 2] = val; // B
         imageData.data[i * 4 + 3] = 255; // Alpha
     }
-
     ctx.putImageData(imageData, 0, 0);
 
     // 将Canvas内容转换为PNG格式的Blob对象

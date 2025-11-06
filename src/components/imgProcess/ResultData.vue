@@ -111,7 +111,6 @@ const tableData = computed(() => {
         displayValue = featureRawValue.toFixed(4);
       }
     }
-
     return {
       name: feature.label,      // 特征名称
       displayValue,            // 显示值

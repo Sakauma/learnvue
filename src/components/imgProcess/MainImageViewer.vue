@@ -10,10 +10,8 @@
         class="responsive-image"
         :style="{ transform: `scale(${zoomLevel / 100})`, transformOrigin: 'center center' }"
     ></el-image>
-
     <!-- 图像占位符 -->
     <div v-if="!imageUrl && !isCroppingActive" class="image-placeholder">请上传图像</div>
-
     <!-- 裁剪组件 -->
     <Cropper
         v-if="imageUrl && isCroppingActive"

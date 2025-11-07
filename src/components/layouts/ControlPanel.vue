@@ -4,6 +4,12 @@
     <el-row class="menu-button-row" justify="start" align="middle">
       <el-col :span="24" class="left-menu-buttons">
         <template v-if="isManualMode">
+          <el-button
+              class="control-button"
+              @click="$emit('infer')"
+              :disabled="isLoading || !canInferInCurrentMode">
+            分析数据
+          </el-button>
         </template>
         <template v-else>
           <el-button
@@ -16,6 +22,9 @@
         </template>
         <el-button class="control-button" @click="$emit('open-settings')">
           参数设置
+        </el-button>
+        <el-button class="control-button" @click="$emit('show-map')">
+          显示结果地图
         </el-button>
         <el-button class="control-button" @click="$emit('open-config-editor')">
           编辑算法配置文件
@@ -68,6 +77,7 @@ const emit = defineEmits([
   'open-settings',
   'open-config-editor',
   'toggle-auto-mode-connection',
+  'show-map',
 ]);
 </script>
 

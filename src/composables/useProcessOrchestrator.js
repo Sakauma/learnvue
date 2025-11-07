@@ -114,6 +114,9 @@ export function useProcessOrchestrator(multiFrameSystemRef, dataColumnRef, folde
     const isSettingsDialogVisible = ref(false);
     const isVersionDialogVisible = ref(false);
 
+    // [新增] 地图弹窗的状态
+    const isMapVisible = ref(false);
+
     const fileInputMode = ref('images'); // 'images' 或 'trajectory'
 
     // 用于传递给弹窗的组合设置对象
@@ -365,7 +368,6 @@ export function useProcessOrchestrator(multiFrameSystemRef, dataColumnRef, folde
         }
     };
 
-
     // --- 5. 生命周期钩子 ---
     /**
      * @description 组件挂载时，自动连接 SSE 日志服务。
@@ -479,6 +481,7 @@ export function useProcessOrchestrator(multiFrameSystemRef, dataColumnRef, folde
         canGenerateFullProduct,
         autoModeConnectionStatus,
         autoModeDatFileUrls,
+        isMapVisible,
 
         handleSaveSettings,
         downloadFullProduct,
@@ -497,5 +500,6 @@ export function useProcessOrchestrator(multiFrameSystemRef, dataColumnRef, folde
         openConfigEditor,
         handleSaveConfig,
         toggleAutoModeConnection,
+        toggleMap: (visible) => { isMapVisible.value = visible; },
     };
 }

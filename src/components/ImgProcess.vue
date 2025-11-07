@@ -14,8 +14,12 @@
         @infer="handleInfer"
         @open-settings="isSettingsDialogVisible = true"
         @open-config-editor="openConfigEditor"
+        @show-map="isMapVisible = true"
         :auto-mode-connection-status="autoModeConnectionStatus"
         @toggle-auto-mode-connection="toggleAutoModeConnection"
+    />
+    <WorldMapDialog
+        v-model:visible="isMapVisible"
     />
     <input type="file" ref="folderInputRef" style="display: none" @change="handleFolderSelectedViaDialog"/>
     <div class="main-content-wrapper">
@@ -108,6 +112,7 @@ import ResultData from './imgProcess/ResultData.vue';
 import BackendLogs from './imgProcess/BackendLogs.vue';
 import AlgorithmReport from './imgProcess/AlgorithmReport.vue';
 import VersionDialog from './utils/VersionDialog.vue';
+import WorldMapDialog from './utils/WorldMapDialog.vue';
 
 // 导入数据产品操作按钮组件
 import DataProductActions from './imgProcess/DataProductActions.vue';
@@ -153,6 +158,7 @@ const {
   isVersionDialogVisible,
   isSettingsDialogVisible,
   parameterSettings,
+  isMapVisible,
 
   autoModeConnectionStatus,
   autoModeDatFileUrls,

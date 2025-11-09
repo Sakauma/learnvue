@@ -2,7 +2,7 @@
 <template>
   <el-dialog
       :model-value="visible"
-      title="全球分析结果地图"
+      title="全球分析结果"
       width="65%"
       @update:model-value="$emit('update:visible', $event)"
       :close-on-click-modal="false"
@@ -20,8 +20,7 @@
         <el-button @click="toggleLabels" :type="showLabels ? 'primary' : ''">
           {{ showLabels ? '隐藏标识' : '显示标识' }}
         </el-button>
-        <el-button @click="clearAllMarkers">清除标记</el-button>
-        <el-button @click="addTestData">测试数据</el-button>
+        <el-button @click="clearAllMarkers">清除轨迹</el-button>
       </el-button-group>
       <!-- 网格间隔调整 -->
       <div class="grid-controls">
@@ -50,17 +49,22 @@
 </template>
 
 <script setup>
-import { ref, onUnmounted, reactive } from 'vue';
+import { ref, onUnmounted, reactive, watch } from 'vue';
 import { ElDialog, ElButton, ElButtonGroup, ElSelect, ElOption } from 'element-plus';
 
-defineProps({
+const props = defineProps({
   visible: Boolean,
+  markerData: {
+    type: Array,
+    default: () => [],
+  },
 });
 defineEmits(['update:visible']);
 
 const mapContainerRef = ref(null);
 let map = null;
-let markers = null;
+let analysisMarkersLayer = null; // 用于分析数据
+let testMarkersLayer = null;     // 用于测试数据
 let gridLayer = null;
 let labelLayer = null;
 let geoJsonLayer = null;
@@ -113,81 +117,116 @@ async function initMap() {
     maxZoom: 5,
     tileSize: 256,
     noWrap: true,
-    attribution: ''
+    attribution: '',
   }).addTo(map);
 
   // 移除默认的缩放控件
   map.removeControl(map.zoomControl);
 
   // 初始化标记图层
-  markers = L.layerGroup();
-  map.addLayer(markers);
-
+  analysisMarkersLayer = L.layerGroup().addTo(map);
+  testMarkersLayer = L.layerGroup();// 测试数据现在默认不显示
   // 初始化网格图层
   gridLayer = L.layerGroup();
-
   // 初始化经纬标识图层
   labelLayer = L.layerGroup();
-
   // 初始化GeoJSON图层
   geoJsonLayer = L.layerGroup();
 
+  // 添加分析数据
+  if (props.markerData && props.markerData.length > 0) {
+    console.log("WorldMap: 正在渲染分析数据...", props.markerData);
+    addAnalysisData(L, props.markerData);
+  } else {
+    console.log("WorldMap: 没有可渲染的分析数据。");
+  }
+
   // 添加示例数据点、网格和GeoJSON边界
-  await addSampleData(L);
   if (showGrid.value) {
     drawGrid(L);
+    map.addLayer(gridLayer);
   }
   if (showLabels.value) {
     drawLabels(L);
+    map.addLayer(labelLayer);
   }
   if (showGeoJSON.value) {
     await loadGeoJSON(L);
   }
 
   // 添加图层控制
-  L.control.layers(
-      {},
-      {
-        '数据标记': markers,
-        '经纬网格': gridLayer,
-        '经纬标识': labelLayer,
-        '国家边界': geoJsonLayer
-      },
-      { position: 'topright', collapsed: true }
-  ).addTo(map);
+  setTimeout(() => {
+    // 添加图层控制
+    L.control.layers(
+        {},
+        {
+          '分析数据': analysisMarkersLayer,
+          '经纬网格': gridLayer,
+          '经纬标识': labelLayer,
+          '国家边界': geoJsonLayer
+        },
+        {
+          position: 'topright',
+          collapsed: true
+        }
+    ).addTo(map);
+  }, 100);
+  console.log('地图初始化完成，图层控制已添加');
 }
+
+// 添加一个 Watcher 侦听 prop 变化
+watch(() => props.markerData, (newData) => {
+  // 检查地图是否已初始化
+  if (map && analysisMarkersLayer && window.L) {
+    console.log("WorldMap Watcher: 检测到分析数据更新，正在重绘...");
+    addAnalysisData(window.L, newData);
+  }
+}, { deep: true }); // 深度侦听
+
+// 添加一个 Watcher 侦听 prop 变化
+watch(() => props.markerData, (newData) => {
+  // 检查地图是否已初始化
+  if (map && analysisMarkersLayer && window.L) {
+    console.log("WorldMap Watcher: 检测到分析数据更新，正在重绘...");
+    // 确保 Leaflet 已加载
+    if (typeof window.L === 'undefined') {
+      console.warn('Leaflet 未加载，等待初始化...');
+      return;
+    }
+    addAnalysisData(window.L, newData);
+    // 确保图层控制仍然存在
+    if (!document.querySelector('.leaflet-control-layers')) {
+      console.log('重新添加图层控制...');
+      // 可以在这里重新添加图层控制，或者重新初始化地图
+    }
+  }
+}, { deep: true });
 
 /**
  * 绘制经纬度网格
  */
 function drawGrid(L) {
   if (!map || !gridLayer) return;
-
   // 清除现有网格
   gridLayer.clearLayers();
-
   const { latStep, lngStep, style } = gridOptions;
-
   // 绘制经线（垂直线）
   for (let lng = -180; lng <= 180; lng += lngStep) {
     const points = [];
     for (let lat = -85; lat <= 85; lat += 5) { // 避免极地变形
       points.push([lat, lng]);
     }
-
     const polyline = L.polyline(points, {
       ...style,
       className: 'grid-line meridian'
     }).addTo(gridLayer);
   }
-
   // 绘制纬线（水平线）
   for (let lat = -60; lat <= 80; lat += latStep) {
     const points = [];
     for (let lng = -180; lng <= 180; lng += 5) {
       points.push([lat, lng]);
     }
-
     const polyline = L.polyline(points, {
       ...style,
       className: 'grid-line parallel'
@@ -198,12 +237,9 @@ function drawGrid(L) {
 // 绘制经纬度标识
 function drawLabels(L) {
   if (!map || !labelLayer) return;
-
   // 清除现有标识
   labelLayer.clearLayers();
-
   const { latStep, lngStep } = gridOptions;
-
   // 绘制经度标识
   for (let lng = -180; lng <= 180; lng += lngStep) {
     if (lng !== 0) {
@@ -217,7 +253,6 @@ function drawLabels(L) {
       }).addTo(labelLayer);
     }
   }
-
   // 绘制纬度标识
   for (let lat = -60; lat <= 80; lat += latStep) {
     const label = L.marker([lat, 0], {
@@ -229,7 +264,6 @@ function drawLabels(L) {
       })
     }).addTo(labelLayer);
   }
-
   // 根据显示状态添加到地图
   if (showLabels.value) {
     map.addLayer(labelLayer);
@@ -248,6 +282,41 @@ function updateGrid() {
   if (L && gridLayer && labelLayer) {
     drawGrid(L);
     drawLabels(L); // 同时更新标识
+  }
+}
+
+/**
+ * 恢复地图状态和图层控制
+ */
+function restoreMapState() {
+  if (!map || !window.L) return;
+  const L = window.L;
+  // 重新添加图层控制（如果丢失）
+  if (!document.querySelector('.leaflet-control-layers')) {
+    L.control.layers(
+        {},
+        {
+          '分析数据': analysisMarkersLayer,
+          '经纬网格': gridLayer,
+          '经纬标识': labelLayer,
+          '国家边界': geoJsonLayer
+        },
+        {
+          position: 'topright',
+          collapsed: true
+        }
+    ).addTo(map);
+    console.log('图层控制已恢复');
+  }
+  // 恢复图层显示状态
+  if (showGrid.value && gridLayer && !map.hasLayer(gridLayer)) {
+    map.addLayer(gridLayer);
+  }
+  if (showLabels.value && labelLayer && !map.hasLayer(labelLayer)) {
+    map.addLayer(labelLayer);
+  }
+  if (showGeoJSON.value && geoJsonLayer && !map.hasLayer(geoJsonLayer)) {
+    map.addLayer(geoJsonLayer);
   }
 }
 
@@ -318,46 +387,6 @@ async function loadGeoJSON(L) {
 
   } catch (error) {
     console.error('加载GeoJSON边界数据失败:', error);
-    // 如果主要文件加载失败，尝试加载备用文件或使用示例数据
-    await loadBackupGeoJSON(L);
-  }
-}
-
-/**
- * 加载备用GeoJSON数据（如果主要文件不存在）
- */
-async function loadBackupGeoJSON(L) {
-  try {
-    // 这里可以添加一个简单的示例GeoJSON作为备用
-    const sampleGeoJSON = {
-      "type": "FeatureCollection",
-      "features": [
-        {
-          "type": "Feature",
-          "properties": { "name": "示例区域" },
-          "geometry": {
-            "type": "Polygon",
-            "coordinates": [[
-              [100, 0], [101, 0], [101, 1], [100, 1], [100, 0]
-            ]]
-          }
-        }
-      ]
-    };
-
-    const geoJsonLayerInstance = L.geoJSON(sampleGeoJSON, {
-      style: {
-        color: '#ff6b6b',
-        weight: 2,
-        opacity: 0.8,
-        fillColor: 'transparent',
-        fillOpacity: 0.1
-      }
-    }).addTo(geoJsonLayer);
-
-    console.log('使用示例GeoJSON数据');
-  } catch (error) {
-    console.error('备用GeoJSON也加载失败:', error);
   }
 }
 
@@ -413,10 +442,10 @@ function toggleLabels() {
  * 添加示例数据点
  */
 async function addSampleData(L) {
-  if (!markers) return;
+  if (!testMarkersLayer) return;
 
   // 清除现有标记
-  markers.clearLayers();
+  testMarkersLayer.clearLayers();
 
   const sampleData = [
     { name: '北京', lat: 39.92, lng: 116.46, resultType: 'TypeA', value: 95 },
@@ -428,21 +457,86 @@ async function addSampleData(L) {
   ];
 
   sampleData.forEach(point => {
-    addDataPoint(L, point);
+    addDataPoint(L, point, testMarkersLayer);
   });
 
   // 自动调整视图以显示所有标记
-  if (markers.getLayers().length > 0) {
-    const group = new L.featureGroup(markers.getLayers());
-    map.fitBounds(group.getBounds().pad(0.1));
+  try {
+    const allMarkers = L.featureGroup([
+      ...analysisMarkersLayer.getLayers(),
+      ...testMarkersLayer.getLayers()
+    ].filter(layer => layer.getLatLng)); // 过滤有效标记
+
+    if (allMarkers.getLayers().length > 0) {
+      const bounds = allMarkers.getBounds();
+      if (bounds.isValid()) {
+        map.fitBounds(bounds.pad(0.1));
+      }
+    }
+  } catch (error) {
+    console.warn('调整地图视图时出错:', error);
   }
 }
 
 /**
- * 添加单个数据点
+ * 添加从分析结果传入的数据点
  */
-function addDataPoint(L, pointData) {
-  if (!map || !markers) return;
+function addAnalysisData(L, data) {
+  if (!map || !analysisMarkersLayer) return;
+  // 重绘分析图层
+  analysisMarkersLayer.clearLayers();
+  data.forEach(point => {
+    // 传入 analysisMarkersLayer
+    addDataPoint(L, point, analysisMarkersLayer);
+  });
+
+  // 确保网格和标识图层保持显示状态
+  if (showGrid.value && gridLayer && !map.hasLayer(gridLayer)) {
+    map.addLayer(gridLayer);
+  }
+  if (showLabels.value && labelLayer && !map.hasLayer(labelLayer)) {
+    map.addLayer(labelLayer);
+  }
+  if (showGeoJSON.value && geoJsonLayer && !map.hasLayer(geoJsonLayer)) {
+    map.addLayer(geoJsonLayer);
+  }
+
+  // 安全地调整视图边界
+  try {
+    const allLayers = [];
+    // 只收集有效的标记图层
+    if (analysisMarkersLayer.getLayers().length > 0) {
+      allLayers.push(analysisMarkersLayer);
+    }
+    if (testMarkersLayer.getLayers().length > 0) {
+      allLayers.push(testMarkersLayer);
+    }
+    if (allLayers.length > 0) {
+      const featureGroup = L.featureGroup(allLayers);
+      const bounds = featureGroup.getBounds();
+      if (bounds.isValid()) {
+        map.fitBounds(bounds.pad(0.1));
+      }
+    } else {
+      // 如果没有标记，设置默认视图
+      map.setView([30, 0], 2);
+    }
+  } catch (error) {
+    console.warn('调整地图视图时出错:', error);
+    map.setView([30, 0], 2);
+  }
+  //restoreMapState();
+}
+
+/**
+ * 添加单个数据点
+ * @param {L} L - Leaflet 实例
+ * @param {object} pointData - 数据点 (现在包含 taskId)
+ * @param {L.LayerGroup} layer - 要添加到的图层
+ */
+// TODO: 在这里修改不同XJY类型的颜色
+function addDataPoint(L, pointData, layer) {
+  if (!map || !layer) return;
 
   // 根据类型设置颜色
   const colorMap = {
@@ -451,7 +545,24 @@ function addDataPoint(L, pointData) {
     'TypeC': '#4caf50'
   };
 
-  const color = colorMap[pointData.resultType] || '#ff5722';
+  const typeColorMap = {
+    0: '#ff5722', // Type 0 颜色
+    1: '#2196f3', // Type 1 颜色
+    2: '#4caf50', // Type 2 颜色
+    3: '#fbc02d', // Type 3 颜色
+    4: '#9c27b0', // Type 4 颜色
+  };
+
+  let color;
+  let typeLabel;
+
+  if (typeof pointData.resultType === 'number') {
+    color = typeColorMap[pointData.resultType] || '#E91E63'; // 使用数字类型映射，提供一个默认粉色
+    typeLabel = `类型 ${pointData.resultType}`;
+  } else {
+    color = colorMap[pointData.resultType] || '#ff5722'; //  fallback 到旧的字符串映射
+    typeLabel = pointData.resultType;
+  }
 
   // 创建自定义图标
   const customIcon = L.divIcon({
@@ -481,7 +592,7 @@ function addDataPoint(L, pointData) {
   marker.bindPopup(`
     <div class="marker-popup">
       <h4>${pointData.name}</h4>
-      <p><strong>类型:</strong> ${pointData.resultType}</p>
+      <p><strong>任务ID:</strong> ${pointData.taskId}</p> <p><strong>类型:</strong> ${typeLabel}</p>
       <p><strong>数值:</strong> ${pointData.value || 'N/A'}</p>
       <p><strong>坐标:</strong> ${pointData.lat.toFixed(4)}°, ${pointData.lng.toFixed(4)}°</p>
       <small>点击外部关闭</small>
@@ -497,7 +608,7 @@ function addDataPoint(L, pointData) {
     this.closePopup();
   });
 
-  markers.addLayer(marker);
+  layer.addLayer(marker);
   return marker;
 }
 
@@ -505,8 +616,11 @@ function addDataPoint(L, pointData) {
  * 清除所有标记
  */
 function clearAllMarkers() {
-  if (markers) {
-    markers.clearLayers();
+  if (testMarkersLayer) {
+    testMarkersLayer.clearLayers();
+  }
+  if(analysisMarkersLayer) {
+    analysisMarkersLayer.clearLayers();
   }
 }
 
@@ -515,7 +629,19 @@ function clearAllMarkers() {
  */
 async function addTestData() {
   const L = await import('leaflet');
-  await addSampleData(L);
+  if (testMarkersLayer.getLayers().length > 0) {
+    testMarkersLayer.clearLayers();
+    // 从地图移除图层
+    if (map.hasLayer(testMarkersLayer)) {
+      map.removeLayer(testMarkersLayer);
+    }
+  } else {
+    await addSampleData(L);
+    // 确保测试数据图层添加到地图
+    if (!map.hasLayer(testMarkersLayer)) {
+      map.addLayer(testMarkersLayer);
+    }
+  }
 }
 
 onUnmounted(() => {

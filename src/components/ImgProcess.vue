@@ -20,7 +20,7 @@
     />
     <WorldMapDialog
         v-model:visible="isMapVisible"
-    />
+        :marker-data="mapMarkerData" />
     <input type="file" ref="folderInputRef" style="display: none" @change="handleFolderSelectedViaDialog"/>
     <div class="main-content-wrapper">
       <div class="content-section image-section">
@@ -159,6 +159,7 @@ const {
   isSettingsDialogVisible,
   parameterSettings,
   isMapVisible,
+  mapMarkerData,
 
   autoModeConnectionStatus,
   autoModeDatFileUrls,

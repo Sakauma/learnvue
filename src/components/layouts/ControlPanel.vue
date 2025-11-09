@@ -24,7 +24,7 @@
           参数设置
         </el-button>
         <el-button class="control-button" @click="$emit('show-map')">
-          显示结果地图
+          显示分析结果
         </el-button>
         <el-button class="control-button" @click="$emit('open-config-editor')">
           编辑算法配置文件

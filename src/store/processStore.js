@@ -71,6 +71,8 @@ export const useProcessStore = defineStore('process', {
         allFeaturesData: null,
         /** @type {boolean} 全局加载状态，true表示正在进行异步操作（如识别） */
         isLoading: false,
+        /** @type {Array} 存储用于世界地图的标记点数据 [{lat, lng, resultType, taskId, name, value}] */
+        mapMarkerData: [],
 
         /** @type {'disconnected' | 'connecting' | 'connected' | 'error'} 自动模式SSE连接状态 */
         autoModeConnectionStatus: 'disconnected',
@@ -198,6 +200,7 @@ export const useProcessStore = defineStore('process', {
             this.currentMultiFrameIndex = -1;
             this.allFeaturesData = null;
             this.autoModeDatFileUrls = [];
+            this.mapMarkerData = [];
             notifications.showNotification('所有预览和结果已清除。');
         },
 
@@ -210,6 +213,7 @@ export const useProcessStore = defineStore('process', {
 
             this.autoModeConnectionStatus = 'disconnected';
             this.autoModeDatFileUrls = [];
+            this.mapMarkerData = [];
             //notifications.showNotification('界面数据已经清空。');
         },
 
@@ -243,7 +247,7 @@ export const useProcessStore = defineStore('process', {
                 if (this.numberOfResultFrames > 0) {
                     this.currentMultiFrameIndex = 0;
                     if (this.resultFolderPathFromApi) {
-                        await this._fetchFeatureDataForCharts();
+                        await this._fetchFeatureDataForCharts('manual');
                     } else {
                         notifications.showNotification('⚠️ 未能获取结果文件夹路径，无法加载图表数据。', 2500);
                     }
@@ -269,11 +273,13 @@ export const useProcessStore = defineStore('process', {
                 this.resultFilesFromApi = resultData.resultFiles || null;
                 this.analysisId = resultData.analysisId || '';
 
+                const taskId = resultData.taskId;
+
                 if (this.numberOfResultFrames > 0) {
                     this.currentMultiFrameIndex = 0;
                     if (this.resultFolderPathFromApi) {
                         // 异步获取图表数据
-                        await this._fetchFeatureDataForCharts();
+                        await this._fetchFeatureDataForCharts(taskId);
                     } else {
                         notifications.showNotification('⚠️ 未能获取结果文件夹路径，无法加载图表数据。', 2500);
                     }
@@ -289,19 +295,136 @@ export const useProcessStore = defineStore('process', {
         /**
          * @description (内部方法) 根据结果路径从后端获取用于图表的特征数据。
          * @private
+         * @param {string | number} taskId - 'manual' 或 自动模式的任务ID
          */
-        async _fetchFeatureDataForCharts() {
+        // async _fetchFeatureDataForCharts(taskId = 'unknown') {
+        //     if (!this.resultFolderPathFromApi) return;
+        //     try {
+        //         const response = await axios.get('get_feature_data', { params: { resultPath: this.resultFolderPathFromApi } });
+        //         if (response.data?.success && response.data.features) {
+        //             this.allFeaturesData = response.data.features;
+        //             notifications.showNotification("图表特征数据加载成功！", 2000);
+        //             this.parseMapDataFromFeatures(response.data.features);
+        //         } else {
+        //             notifications.showNotification(`⚠️ ${response.data?.message || "未能加载图表特征数据。"}`, 2500);
+        //         }
+        //     } catch (error) {
+        //         notifications.showNotification(`❌ 请求图表特征数据失败: ${error.response?.data?.message || error.message}`, 3000);
+        //     }
+        // },
+        async _fetchFeatureDataForCharts(taskId = 'unknown') { // [修改] 接受 taskId
             if (!this.resultFolderPathFromApi) return;
             try {
                 const response = await axios.get('get_feature_data', { params: { resultPath: this.resultFolderPathFromApi } });
                 if (response.data?.success && response.data.features) {
                     this.allFeaturesData = response.data.features;
                     notifications.showNotification("图表特征数据加载成功！", 2000);
+                    // 将 features 和 taskId 都传递给解析器
+                    this.parseMapDataFromFeatures(response.data.features, taskId);
                 } else {
                     notifications.showNotification(`⚠️ ${response.data?.message || "未能加载图表特征数据。"}`, 2500);
                 }
             } catch (error) {
                 notifications.showNotification(`❌ 请求图表特征数据失败: ${error.response?.data?.message || error.message}`, 3000);
+            }
+        },
+
+        /**
+         * @description 解析特征数据以提取地图标记点
+         * @param {object} features - 后端返回的 allFeaturesData 对象
+         * @param {string | number} taskId - 'manual' 或 自动模式的任务ID
+         */
+        // parseMapDataFromFeatures(features) {
+        //     if (!features || !features.lat || !features.lgt || features.category_type === undefined) {
+        //         console.warn("[parseMapData] 缺少 lat, lgt, 或 category_type 数据，无法生成地图标记。");
+        //         this.mapMarkerData = [];
+        //         return;
+        //     }
+        //
+        //     const latitudes = features.lat;
+        //     const longitudes = features.lgt;
+        //     // category_type 是一个单一值，应用于所有帧
+        //     const type = features.category_type;
+        //
+        //     if (!Array.isArray(latitudes) || !Array.isArray(longitudes) || latitudes.length !== longitudes.length) {
+        //         console.warn("[parseMapData] lat 或 lgt 不是数组，或长度不匹配。");
+        //         this.mapMarkerData = [];
+        //         return;
+        //     }
+        //
+        //     const newMarkers = [];
+        //     for (let i = 0; i < latitudes.length; i++) {
+        //         // 确保经纬度数据有效
+        //         if (typeof latitudes[i] === 'number' && typeof longitudes[i] === 'number') {
+        //             newMarkers.push({
+        //                 name: `分析点 ${i + 1}`, // 自动生成一个名称
+        //                 lat: latitudes[i],
+        //                 lng: longitudes[i],
+        //                 resultType: type, // 将 category_type 赋给 resultType
+        //                 value: i + 1 // 可以放一个占位值，比如帧索引
+        //             });
+        //         }
+        //     }
+        //     this.mapMarkerData = newMarkers;
+        //     console.log(`[parseMapData] 成功解析并存储 ${newMarkers.length} 个地图标记点。`);
+        // },
+        parseMapDataFromFeatures(features, taskId) {
+            if (!features || !features.lat || !features.lgt || features.category_type === undefined) {
+                console.warn("[parseMapData] 缺少 lat, lgt, 或 category_type 数据，无法生成地图标记。");
+                return;
+            }
+
+            const latitudes = features.lat;
+            const longitudes = features.lgt;
+            const type = features.category_type; // category_type 是一个单一值
+
+            if (!Array.isArray(latitudes) || !Array.isArray(longitudes) || latitudes.length !== longitudes.length) {
+                console.warn("[parseMapData] lat 或 lgt 不是数组，或长度不匹配。");
+                return;
+            }
+
+            // --- [新增] 去重逻辑 ---
+
+            // 1. 创建一个 Set，用于快速查找已存在的标记点
+            // 我们使用 "纬度:经度:类型" 格式的字符串作为唯一键
+            const existingMarkersSet = new Set(
+                this.mapMarkerData.map(m => `${m.taskId}:${m.lat}:${m.lng}:${m.resultType}`)
+            );
+
+            const newMarkers = [];
+
+            for (let i = 0; i < latitudes.length; i++) {
+                const lat = latitudes[i];
+                const lng = longitudes[i];
+
+                if (typeof lat !== 'number' || typeof lng !== 'number') {
+                    continue; // 跳过无效数据
+                }
+
+                // [修改] 使用新的4部分唯一键
+                const markerKey = `${taskId}:${lat}:${lng}:${type}`;
+
+                if (!existingMarkersSet.has(markerKey)) {
+                    existingMarkersSet.add(markerKey);
+
+                    // [修改] 在存储的对象中包含 taskId
+                    newMarkers.push({
+                        taskId: taskId,
+                        name: `任务 ${taskId} (点 ${i + 1})`,
+                        lat: lat,
+                        lng: lng,
+                        resultType: type,
+                        value: i + 1 // 帧索引
+                    });
+                }
+            }
+
+            if (newMarkers.length > 0) {
+                this.mapMarkerData.push(...newMarkers);
+                console.log(`[parseMapData] 成功累积 ${newMarkers.length} 个新的地图标记点。总数: ${this.mapMarkerData.length}`);
+                notifications.showNotification(`✅ 地图新增 ${newMarkers.length} 个分析结果`);
+            } else {
+                console.log("[parseMapData] 本次分析未产生新的地图标记点 (数据已存在)。");
             }
         },
     },

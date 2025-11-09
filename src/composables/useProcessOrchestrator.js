@@ -71,13 +71,13 @@ export function useProcessOrchestrator(multiFrameSystemRef, dataColumnRef, folde
 
         autoModeConnectionStatus,
         autoModeDatFileUrls,
+        mapMarkerData,
     } = storeToRefs(store);
 
     /**
      * @description 缩放功能 Composable，提供缩放级别状态和操作方法。
      */
     const { zoomLevel, zoomIn, zoomOut } = useZoom();
-
 
     /**
      * @description SSE (Server-Sent Events) 日志 Composable，用于从后端接收实时日志。
@@ -409,7 +409,8 @@ export function useProcessOrchestrator(multiFrameSystemRef, dataColumnRef, folde
         // 确保是自动模式，并且有新结果
         if (newResult && !isManualMode.value) {
             console.log('Orchestrator: 收到自动模式最终结果', newResult);
-            // 调用 Store 中新创建的 action 来处理结果
+            // 我们将整个 newResult (包含新的 taskId) 传递给 store
+            // store 内部的 action 将负责解析它
             store.processAutoModeResult(newResult);
         }
     });
@@ -481,6 +482,7 @@ export function useProcessOrchestrator(multiFrameSystemRef, dataColumnRef, folde
         canGenerateFullProduct,
         autoModeConnectionStatus,
         autoModeDatFileUrls,
+        mapMarkerData,
         isMapVisible,
 
         handleSaveSettings,

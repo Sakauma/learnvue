@@ -7,6 +7,7 @@ import { storeToRefs } from 'pinia';
 // 导入所有需要的其他 Composables
 import { useMultiFrameResult } from './useMultiFrameResult.js';
 import { useNotifications } from './useNotifications.js';
+import { logService } from './useLogService.js';
 import { useSseLogs } from './useSseLogs.js';
 import { useZoom } from "./useZoom.js";
 import { useDataProduct } from './useDataProduct.js';
@@ -82,7 +83,9 @@ export function useProcessOrchestrator(multiFrameSystemRef, dataColumnRef, folde
     /**
      * @description SSE (Server-Sent Events) 日志 Composable，用于从后端接收实时日志。
      */
-    const { logs: parsedLogs, connectionStatus, connectionAttempts, connect, disconnect, clearLogs } = useSseLogs('/sse/logs');
+    //const { logs: parsedLogs, connectionStatus, connectionAttempts, connect, disconnect, clearLogs } = useSseLogs('/sse/logs');
+    const { connectionStatus, connectionAttempts, connect, disconnect, clearLogs } = useSseLogs('/sse/logs');
+    const { logs: parsedLogs } = logService;
 
     // 初始化自动模式SSE
     const sseAutoUpdate = useSseAutoUpdate();
@@ -142,9 +145,9 @@ export function useProcessOrchestrator(multiFrameSystemRef, dataColumnRef, folde
 
             if (modeChanged) {
                 sseAutoUpdate.disconnect();
-                disconnect();// 断开日志SSE连接
+                //disconnect();// 断开日志SSE连接
                 multiFramePreviewLoader.clearFrames();
-                clearAllLogsAndReports();
+                //clearAllLogsAndReports();
                 store.setMode(newSettings.selectedMode);
             }
 
@@ -157,7 +160,7 @@ export function useProcessOrchestrator(multiFrameSystemRef, dataColumnRef, folde
         store.satelliteModel = newSettings.satelliteModel;
         store.waveType = newSettings.waveType;
         store.trajectoryEntry = newSettings.trajectoryEntry;
-        notifications.showNotification('✅ 参数已保存');
+        //notifications.showNotification('✅ 参数已保存');
         });
     };
 
@@ -312,7 +315,7 @@ export function useProcessOrchestrator(multiFrameSystemRef, dataColumnRef, folde
         if (dataColumnRef.value?.report) {
             dataColumnRef.value.report.clearReports();
         }
-        notifications.showNotification('日志和报告已清空');
+        //notifications.showNotification('日志和报告已清空');
     };
 
     // 配置文件相关状态和方法

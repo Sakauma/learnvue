@@ -107,7 +107,7 @@ import MultiFrameSystem from './imgProcess/MultiFrameSystem.vue';
 import ImageZoomSlider from './imgProcess/ImageZoomSlider.vue';
 import ImageViewerCard from './imgProcess/ImageViewerCard.vue';
 import ChartGrid from './imgProcess/ChartGrid.vue';
-import AppNotification from './imgProcess/AppNotification.vue';
+//import AppNotification from './imgProcess/AppNotification.vue';
 import ResultData from './imgProcess/ResultData.vue';
 import BackendLogs from './imgProcess/BackendLogs.vue';
 import AlgorithmReport from './imgProcess/AlgorithmReport.vue';

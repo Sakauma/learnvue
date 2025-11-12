@@ -31,8 +31,6 @@ export function useSseAutoUpdate() {
         connectionStatus.value = 'connecting';
 
         try {
-            // 注意：我们假设后端的SSE URL是 '/sse/auto_updates'
-            // 我们还需要从 .env 文件读取基础URL
             const fullSseUrl = '/sse/auto_updates';
             eventSource.value = new EventSource(fullSseUrl);
 
@@ -52,7 +50,6 @@ export function useSseAutoUpdate() {
                 }
             });
 
-            // <-- 新增：监听 'auto_mode_result' 事件 -->
             eventSource.value.addEventListener('auto_mode_result', (event) => {
                 try {
                     // 假设后端发送的是JSON字符串
@@ -79,7 +76,6 @@ export function useSseAutoUpdate() {
             connectionStatus.value = 'error';
         }
     };
-
     onUnmounted(disconnect);
 
     return {

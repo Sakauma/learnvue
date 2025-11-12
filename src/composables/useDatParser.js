@@ -1,4 +1,3 @@
-// 导入DatParserWorker模块，该模块是一个Web Worker，用于在后台线程中解析.dat文件
 import DatParserWorker from '../workers/datParser.worker.js?worker';
 
 /**

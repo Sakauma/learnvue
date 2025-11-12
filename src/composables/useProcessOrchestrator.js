@@ -312,9 +312,9 @@ export function useProcessOrchestrator(multiFrameSystemRef, dataColumnRef, folde
      */
     const clearAllLogsAndReports = () => {
         clearLogs();
-        if (dataColumnRef.value?.report) {
-            dataColumnRef.value.report.clearReports();
-        }
+        // if (dataColumnRef.value?.report) {
+        //     dataColumnRef.value.report.clearReports();
+        // }
         //notifications.showNotification('日志和报告已清空');
     };
 
@@ -393,6 +393,7 @@ export function useProcessOrchestrator(multiFrameSystemRef, dataColumnRef, folde
     // 监听自动模式SSE数据
     watch(sseAutoUpdate.latestData, (newData) => {
         if (newData && newData.datFileUrls && newData.datFileUrls.length > 0) {
+            store.resetResultImages();
             store.setAutoModeDatFileUrls(newData.datFileUrls);
             multiFramePreviewLoader.processAutoModeDatUrls(
                 newData.datFileUrls,
@@ -402,8 +403,9 @@ export function useProcessOrchestrator(multiFrameSystemRef, dataColumnRef, folde
         } else {
             store.setAutoModeDatFileUrls([]);
             if (!isManualMode.value) {
-                // 只有在自动模式下才清空帧
+                // 预览加载器会清空预览图像
                 multiFramePreviewLoader.clearFrames();
+                store.resetResultImages();
             }
         }
     });

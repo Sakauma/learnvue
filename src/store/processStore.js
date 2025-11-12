@@ -200,8 +200,17 @@ export const useProcessStore = defineStore('process', {
             this.currentMultiFrameIndex = -1;
             this.allFeaturesData = null;
             this.autoModeDatFileUrls = [];
-            this.mapMarkerData = [];
+            //this.mapMarkerData = [];
             notifications.showNotification('所有预览和结果已清除。');
+        },
+
+        /**
+         * @description (自动模式) 仅重置上一轮的结果图像，保留图表和地图数据。
+         */
+        resetResultImages() {
+            this.resultFolderPathFromApi = '';
+            this.resultFilesFromApi = null;
+            this.currentMultiFrameIndex = -1;
         },
 
         /**
@@ -297,21 +306,6 @@ export const useProcessStore = defineStore('process', {
          * @private
          * @param {string | number} taskId - 'manual' 或 自动模式的任务ID
          */
-        // async _fetchFeatureDataForCharts(taskId = 'unknown') {
-        //     if (!this.resultFolderPathFromApi) return;
-        //     try {
-        //         const response = await axios.get('get_feature_data', { params: { resultPath: this.resultFolderPathFromApi } });
-        //         if (response.data?.success && response.data.features) {
-        //             this.allFeaturesData = response.data.features;
-        //             notifications.showNotification("图表特征数据加载成功！", 2000);
-        //             this.parseMapDataFromFeatures(response.data.features);
-        //         } else {
-        //             notifications.showNotification(`⚠️ ${response.data?.message || "未能加载图表特征数据。"}`, 2500);
-        //         }
-        //     } catch (error) {
-        //         notifications.showNotification(`❌ 请求图表特征数据失败: ${error.response?.data?.message || error.message}`, 3000);
-        //     }
-        // },
         async _fetchFeatureDataForCharts(taskId = 'unknown') { // [修改] 接受 taskId
             if (!this.resultFolderPathFromApi) return;
             try {
@@ -334,40 +328,6 @@ export const useProcessStore = defineStore('process', {
          * @param {object} features - 后端返回的 allFeaturesData 对象
          * @param {string | number} taskId - 'manual' 或 自动模式的任务ID
          */
-        // parseMapDataFromFeatures(features) {
-        //     if (!features || !features.lat || !features.lgt || features.category_type === undefined) {
-        //         console.warn("[parseMapData] 缺少 lat, lgt, 或 category_type 数据，无法生成地图标记。");
-        //         this.mapMarkerData = [];
-        //         return;
-        //     }
-        //
-        //     const latitudes = features.lat;
-        //     const longitudes = features.lgt;
-        //     // category_type 是一个单一值，应用于所有帧
-        //     const type = features.category_type;
-        //
-        //     if (!Array.isArray(latitudes) || !Array.isArray(longitudes) || latitudes.length !== longitudes.length) {
-        //         console.warn("[parseMapData] lat 或 lgt 不是数组，或长度不匹配。");
-        //         this.mapMarkerData = [];
-        //         return;
-        //     }
-        //
-        //     const newMarkers = [];
-        //     for (let i = 0; i < latitudes.length; i++) {
-        //         // 确保经纬度数据有效
-        //         if (typeof latitudes[i] === 'number' && typeof longitudes[i] === 'number') {
-        //             newMarkers.push({
-        //                 name: `分析点 ${i + 1}`, // 自动生成一个名称
-        //                 lat: latitudes[i],
-        //                 lng: longitudes[i],
-        //                 resultType: type, // 将 category_type 赋给 resultType
-        //                 value: i + 1 // 可以放一个占位值，比如帧索引
-        //             });
-        //         }
-        //     }
-        //     this.mapMarkerData = newMarkers;
-        //     console.log(`[parseMapData] 成功解析并存储 ${newMarkers.length} 个地图标记点。`);
-        // },
         parseMapDataFromFeatures(features, taskId) {
             if (!features || !features.lat || !features.lgt || features.category_type === undefined) {
                 console.warn("[parseMapData] 缺少 lat, lgt, 或 category_type 数据，无法生成地图标记。");
@@ -383,10 +343,8 @@ export const useProcessStore = defineStore('process', {
                 return;
             }
 
-            // --- [新增] 去重逻辑 ---
-
-            // 1. 创建一个 Set，用于快速查找已存在的标记点
-            // 我们使用 "纬度:经度:类型" 格式的字符串作为唯一键
+            // 创建一个 Set，用于快速查找已存在的标记点
+            // 使用 "纬度:经度:类型" 格式的字符串作为唯一键
             const existingMarkersSet = new Set(
                 this.mapMarkerData.map(m => `${m.taskId}:${m.lat}:${m.lng}:${m.resultType}`)
             );
@@ -401,13 +359,13 @@ export const useProcessStore = defineStore('process', {
                     continue; // 跳过无效数据
                 }
 
-                // [修改] 使用新的4部分唯一键
+                // 使用新的4部分唯一键
                 const markerKey = `${taskId}:${lat}:${lng}:${type}`;
 
                 if (!existingMarkersSet.has(markerKey)) {
                     existingMarkersSet.add(markerKey);
 
-                    // [修改] 在存储的对象中包含 taskId
+                    // 在存储的对象中包含 taskId
                     newMarkers.push({
                         taskId: taskId,
                         name: `任务 ${taskId} (点 ${i + 1})`,

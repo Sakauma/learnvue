@@ -17,9 +17,9 @@ function getBaseName(filePath) {
 
 /**
  * 用于管理多帧结果图像URL的组合式函数
- * @param {Ref<string>} resultPathFromApiRef - 从API获取的结果基础路径的响应式引用
- * @param {Ref<Object>} resultFilesFromApiRef - 从API获取的结果文件信息的响应式引用
- * @param {Ref<number>} currentFrameIndexRef - 当前帧索引的响应式引用
+ * @param resultPathFromApiRef - 从API获取的结果基础路径的响应式引用
+ * @param resultFilesFromApiRef - 从API获取的结果文件信息的响应式引用
+ * @param currentFrameIndexRef - 当前帧索引的响应式引用
  * @returns {Object} - 包含只读的interestImageUrl和outputImageUrl
  */
 export function useMultiFrameResult(

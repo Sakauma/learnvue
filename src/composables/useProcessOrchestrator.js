@@ -73,6 +73,7 @@ export function useProcessOrchestrator(multiFrameSystemRef, dataColumnRef, folde
         autoModeConnectionStatus,
         autoModeDatFileUrls,
         mapMarkerData,
+        latestTaskId,
     } = storeToRefs(store);
 
     /**
@@ -489,6 +490,7 @@ export function useProcessOrchestrator(multiFrameSystemRef, dataColumnRef, folde
         autoModeDatFileUrls,
         mapMarkerData,
         isMapVisible,
+        latestTaskId,
 
         handleSaveSettings,
         downloadFullProduct,

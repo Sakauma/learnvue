@@ -2,6 +2,7 @@ import { defineStore } from 'pinia';
 import axios from 'axios';
 import { useInference } from '../composables/useInference.js';
 import { useNotifications } from '../composables/useNotifications.js';
+import { FEATURE_DEFINITIONS } from '../config/featureConfig.js';
 
 // --- 初始化外部模块 ---
 /**
@@ -73,6 +74,8 @@ export const useProcessStore = defineStore('process', {
         isLoading: false,
         /** @type {Array} 存储用于世界地图的标记点数据 [{lat, lng, resultType, taskId, name, value}] */
         mapMarkerData: [],
+        /** @type {string | number} 记录最近一次分析的任务ID，用于地图单次显示 */
+        latestTaskId: null,
 
         /** @type {'disconnected' | 'connecting' | 'connected' | 'error'} 自动模式SSE连接状态 */
         autoModeConnectionStatus: 'disconnected',
@@ -253,10 +256,11 @@ export const useProcessStore = defineStore('process', {
                 this.resultFilesFromApi = result.data.resultFiles || null;
                 // 从后端响应中获取正确的 analysisId 并存储
                 this.analysisId = result.data.analysisId || '';
+                this.latestTaskId = this.analysisId;
                 if (this.numberOfResultFrames > 0) {
                     this.currentMultiFrameIndex = 0;
                     if (this.resultFolderPathFromApi) {
-                        await this._fetchFeatureDataForCharts('manual');
+                        await this._fetchFeatureDataForCharts(this.analysisId);
                     } else {
                         notifications.showNotification('⚠️ 未能获取结果文件夹路径，无法加载图表数据。', 2500);
                     }
@@ -283,6 +287,7 @@ export const useProcessStore = defineStore('process', {
                 this.analysisId = resultData.analysisId || '';
 
                 const taskId = resultData.taskId;
+                this.latestTaskId = taskId;
 
                 if (this.numberOfResultFrames > 0) {
                     this.currentMultiFrameIndex = 0;
@@ -355,9 +360,38 @@ export const useProcessStore = defineStore('process', {
                 const lat = latitudes[i];
                 const lng = longitudes[i];
 
-                if (typeof lat !== 'number' || typeof lng !== 'number') {
-                    continue; // 跳过无效数据
+                if (typeof lat !== 'number' || typeof lng !== 'number') continue; // 跳过无效数据
+
+                // 提取时间戳
+                let dataTimestamp = new Date().getTime();
+                if (features.year && features.month && features.day &&
+                    features.hour && features.min && features.sec) {
+
+                    const y = features.year[i];
+                    const m = features.month[i];
+                    const d = features.day[i];
+                    const h = features.hour[i];
+                    const min = features.min[i];
+                    const s = features.sec[i];
+                    // msec 可能是 float, Date.UTC 需要整数毫秒。如果没有 msec 字段则设为 0
+                    const ms = features.msec ? Math.floor(features.msec[i]) : 0;
+
+                    // 构建 UTC 时间戳 (注意：JS 中月份从 0 开始，所以 m - 1)
+                    dataTimestamp = Date.UTC(y, m - 1, d, h, min, s, ms);
                 }
+
+                // 提取该点的所有特征数据
+                const pointFeatures = {};
+                FEATURE_DEFINITIONS.forEach(def => {
+                    // 检查 features 对象中是否存在该 key 的数组，并取第 i 个值
+                    const val = features[def.key];
+                    if (Array.isArray(val) && val.length > i) {
+                        pointFeatures[def.key] = val[i];
+                    } else if (typeof val === 'number') {
+                        // 处理某些特征可能不是数组的情况（如果是全局特征）
+                        pointFeatures[def.key] = val;
+                    }
+                });
 
                 // 使用新的4部分唯一键
                 const markerKey = `${taskId}:${lat}:${lng}:${type}`;
@@ -372,7 +406,9 @@ export const useProcessStore = defineStore('process', {
                         lat: lat,
                         lng: lng,
                         resultType: type,
-                        value: i + 1 // 帧索引
+                        value: i + 1, // 帧索引
+                        features: pointFeatures, //保存特征数据到标记点
+                        timestamp: dataTimestamp
                     });
                 }
             }

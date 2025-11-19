@@ -110,7 +110,7 @@ export function useInference(showNotificationCallback) {
         }
     }
 
-    async function performMultiFrameInference(files, algorithm, mode, trackFile, abortSignal) {
+    async function performMultiFrameInference(files, algorithm, mode, trackFile, taskId, abortSignal) {
 
         // 1. 检查算法 (所有模式都需要)
         if (!algorithm) {
@@ -143,6 +143,10 @@ export function useInference(showNotificationCallback) {
         formData.append('mode', String(mode));
         if (trackFile) {
             formData.append('trackFile', trackFile);
+        }
+
+        if (taskId) {
+            formData.append('taskId', String(taskId));
         }
 
         try {

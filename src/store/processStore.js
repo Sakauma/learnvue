@@ -45,8 +45,8 @@ export const useProcessStore = defineStore('process', {
         satelliteModel: 'H03',
         /** @type {string} 段波类型 (例如 'gazeShort') */
         waveType: 'gazeShort',
-        /** @type {string} 轨迹条目 (例如 '1001') */
-        trajectoryEntry: '1001',
+        /** @type {string} 虚警源ID */
+        trajectoryEntry: '0',
 
         /** @type {File | null} 单帧模式下上传的原始文件对象 */
         singleFrameFile: null,
@@ -248,6 +248,7 @@ export const useProcessStore = defineStore('process', {
                 this.selectedSpecificAlgorithm,
                 2,
                 this.trajectoryFile, // trackFile
+                this.trajectoryEntry,
                 abortSignal
             );
 
@@ -256,11 +257,11 @@ export const useProcessStore = defineStore('process', {
                 this.resultFilesFromApi = result.data.resultFiles || null;
                 // 从后端响应中获取正确的 analysisId 并存储
                 this.analysisId = result.data.analysisId || '';
-                this.latestTaskId = this.analysisId;
+                this.latestTaskId = this.trajectoryEntry;
                 if (this.numberOfResultFrames > 0) {
                     this.currentMultiFrameIndex = 0;
                     if (this.resultFolderPathFromApi) {
-                        await this._fetchFeatureDataForCharts(this.analysisId);
+                        await this._fetchFeatureDataForCharts(this.trajectoryEntry);
                     } else {
                         notifications.showNotification('⚠️ 未能获取结果文件夹路径，无法加载图表数据。', 2500);
                     }
@@ -316,7 +317,9 @@ export const useProcessStore = defineStore('process', {
             try {
                 const response = await axios.get('get_feature_data', { params: { resultPath: this.resultFolderPathFromApi } });
                 if (response.data?.success && response.data.features) {
-                    this.allFeaturesData = response.data.features;
+                    //this.allFeaturesData = response.data.features;
+                    const augmentedData = this.augmentFeatureData(response.data.features);
+                    this.allFeaturesData = augmentedData;
                     notifications.showNotification("图表特征数据加载成功！", 2000);
                     // 将 features 和 taskId 都传递给解析器
                     this.parseMapDataFromFeatures(response.data.features, taskId);
@@ -348,6 +351,8 @@ export const useProcessStore = defineStore('process', {
                 return;
             }
 
+            const hasTimeData = Array.isArray(features.year) && Array.isArray(features.month) && Array.isArray(features.day);
+
             // 创建一个 Set，用于快速查找已存在的标记点
             // 使用 "纬度:经度:类型" 格式的字符串作为唯一键
             const existingMarkersSet = new Set(
@@ -373,7 +378,6 @@ export const useProcessStore = defineStore('process', {
                     const h = features.hour[i];
                     const min = features.min[i];
                     const s = features.sec[i];
-                    // msec 可能是 float, Date.UTC 需要整数毫秒。如果没有 msec 字段则设为 0
                     const ms = features.msec ? Math.floor(features.msec[i]) : 0;
 
                     // 构建 UTC 时间戳 (注意：JS 中月份从 0 开始，所以 m - 1)
@@ -396,6 +400,25 @@ export const useProcessStore = defineStore('process', {
                 // 使用新的4部分唯一键
                 const markerKey = `${taskId}:${lat}:${lng}:${type}`;
 
+                let timestamp = null;
+                if (hasTimeData) {
+                    try {
+                        // 注意：features.month 里的月份通常是 1-12，但 Date 对象需要 0-11，所以要减 1
+                        const y = features.year[i];
+                        const m = features.month[i] - 1;
+                        const d = features.day[i];
+                        const h = features.hour ? features.hour[i] : 0;
+                        const min = features.min ? features.min[i] : 0;
+                        const s = features.sec ? features.sec[i] : 0;
+                        const ms = features.msec ? features.msec[i] : 0;
+
+                        // 创建时间对象并获取毫秒时间戳
+                        timestamp = new Date(y, m, d, h, min, s, ms).getTime();
+                    } catch (e) {
+                        console.warn("时间组装失败", e);
+                    }
+                }
+
                 if (!existingMarkersSet.has(markerKey)) {
                     existingMarkersSet.add(markerKey);
 
@@ -408,7 +431,7 @@ export const useProcessStore = defineStore('process', {
                         resultType: type,
                         value: i + 1, // 帧索引
                         features: pointFeatures, //保存特征数据到标记点
-                        timestamp: dataTimestamp
+                        timestamp: timestamp
                     });
                 }
             }
@@ -420,6 +443,95 @@ export const useProcessStore = defineStore('process', {
             } else {
                 console.log("[parseMapData] 本次分析未产生新的地图标记点 (数据已存在)。");
             }
+        },
+
+        augmentFeatureData(data) {
+            if (!data) return data;
+
+            let radKey = null;
+            if (data.apTotalRad) radKey = 'apTotalRad';
+            else if (data.aptotalrad) radKey = 'aptotalrad';
+            else if (data.ap_total_rad) radKey = 'ap_total_rad';
+            else if (data.AlarmTotalGray) radKey = 'AlarmTotalGray';
+
+            // 总灰度 (total_gray)
+            if (!data.total_gray) {
+                if (radKey && data[radKey]) {
+                    console.log(`[Store] 使用 ${radKey} 填充 total_gray`);
+                    data.total_gray = [...data[radKey]];
+
+                    if (!data.apTotalRad) {
+                        data.apTotalRad = [...data[radKey]];
+                    }
+
+                } else if (data.mean_region && data.xjy_area) {
+                    console.log("[Store] 未找到辐射字段，使用 (均值 * 面积) 计算 total_gray");
+                    data.total_gray = data.mean_region.map((mean, i) => {
+                        const area = data.xjy_area[i];
+                        return (mean !== null && area !== null) ? (mean * area) : 0;
+                    });
+
+                    if (!data.apTotalRad) {
+                        data.apTotalRad = [...data.total_gray];
+                    }
+                } else {
+                    console.warn("[Store] 无法计算 total_gray: 缺少 mean_region 或 xjy_area 数据");
+                }
+            }
+
+            if (!data.SNR) {
+                if (data.peak_cell_intensity && data.xjy_background_intensity) {
+                    data.SNR = data.peak_cell_intensity.map((peak, i) => {
+                        const bg = data.xjy_background_intensity[i];
+                        return bg !== 0 ? peak / bg : 0;
+                    });
+                } else if (data.SCR) {
+                    data.SNR = [...data.SCR];
+                }
+            }
+
+            return data;
+        },
+
+        /**
+         * @description 更新结果类型 (Category Type) 并保存到后端
+         * @param {number} newType - 新的类型 ID (0-5)
+         */
+        async updateCategoryType(newType) {
+            if (!this.resultFolderPathFromApi && !this.analysisId) {
+                notifications.showNotification('❌ 无法更新：缺少任务标识 (AnalysisID)。', 3000);
+                return;
+            }
+            // 如果 allFeaturesData 为空不更新
+            if (!this.allFeaturesData) return;
+
+            const oldType = this.allFeaturesData.category_type;
+            this.allFeaturesData.category_type = newType;
+
+            // // TODO:发送请求给后端
+            // try {
+            //     // 使用 analysisId 作为唯一标识，或者 resultPath
+            //     const payload = {
+            //         analysisId: this.analysisId || this.resultFolderPathFromApi,
+            //         newType: newType
+            //     };
+            //
+            //     // 注意：你需要确保后端有这个接口，或者根据实际后端接口调整 URL
+            //     const response = await axios.post('/update_category_type', payload);
+            //
+            //     if (response.data?.success) {
+            //         notifications.showNotification(`✅ 类型已修改为: ${newType}`);
+            //         // 如果需要，可以刷新地图数据以反映颜色变化
+            //         // this.parseMapDataFromFeatures(this.allFeaturesData, this.latestTaskId);
+            //     } else {
+            //         throw new Error(response.data?.message || '后端未返回成功标识');
+            //     }
+            // } catch (error) {
+            //     console.error("更新类型失败:", error);
+            //     // 4. 如果失败，回滚前端状态
+            //     this.allFeaturesData.category_type = oldType;
+            //     notifications.showNotification(`❌ 保存类型失败: ${error.message}`, 3000);
+            // }
         },
     },
 });

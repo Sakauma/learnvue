@@ -4,9 +4,15 @@
  * label: 前端显示名称
  */
 export const FEATURE_DEFINITIONS = [
+    { key: "xjy_area",             label: "当前帧像素数" },
+    { key: "mean_region",          label: "平均像素数" },
+    { key: "total_gray",           label: "总灰度" },
+    { key: "apTotalRad",           label: "总辐射强度" },
+    { key: "peak_cell_intensity",  label: "峰单元强度" },
+    { key: "SCR",                  label: "信杂比" },
     { key: "variance",    label: "方差" },
     { key: "mean_region", label: "均值" },
-    { key: "SCR",         label: "信杂比" },
+    { key: "SNR",         label: "信噪比" },
     { key: "contrast",    label: "对比度" },
     { key: "entropy",     label: "信息熵" },
     { key: "homogeneity", label: "同质性" },

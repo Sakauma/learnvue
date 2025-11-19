@@ -118,9 +118,9 @@ const tableData = computed(() => {
   });
 });
 
-const column1Data = computed(() => tableData.value.slice(0, 4));
-const column2Data = computed(() => tableData.value.slice(4, 8));
-const column3Data = computed(() => tableData.value.slice(8, 12));
+const column1Data = computed(() => tableData.value.slice(0, 6));
+const column2Data = computed(() => tableData.value.slice(6, 12));
+const column3Data = computed(() => tableData.value.slice(12, 18));
 
 // 计算属性：根据dataMode和数据情况生成空数据提示文本
 const emptyText = computed(() => {

@@ -372,6 +372,10 @@ export function useProcessOrchestrator(multiFrameSystemRef, dataColumnRef, folde
         }
     };
 
+    const handleUpdateResultType = (newType) => {
+        store.updateCategoryType(newType);
+    };
+
     // --- 5. 生命周期钩子 ---
     /**
      * @description 组件挂载时，自动连接 SSE 日志服务。
@@ -509,6 +513,7 @@ export function useProcessOrchestrator(multiFrameSystemRef, dataColumnRef, folde
         openConfigEditor,
         handleSaveConfig,
         toggleAutoModeConnection,
+        handleUpdateResultType,
         toggleMap: (visible) => { isMapVisible.value = visible; },
     };
 }

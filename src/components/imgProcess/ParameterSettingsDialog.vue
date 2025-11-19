@@ -59,12 +59,20 @@
         </el-select>
       </el-form-item>
 
-      <el-form-item label="轨迹条目:">
-        <el-select v-model="localSettings.trajectoryEntry" placeholder="选择轨迹条目" class="full-width-select">
-          <el-option label="1001" value="1001"></el-option>
-          <el-option label="1002" value="1002"></el-option>
-          <el-option label="1004" value="1004"></el-option>
-        </el-select>
+      <el-form-item label="虚警源ID:">
+        <el-input
+            v-if="localSettings.selectedMode === 'manual'"
+            v-model="localSettings.trajectoryEntry"
+            placeholder="请输入 虚警源ID"
+            class="full-width-select"
+            clearable
+        />
+        <el-input
+            v-else
+            model-value="自动获取"
+            disabled
+            class="full-width-select"
+        />
       </el-form-item>
 
       <el-form-item label="图像尺寸:">
@@ -94,7 +102,7 @@
 
 <script setup>
 import { ref, computed } from 'vue';
-import { ElDialog, ElForm, ElFormItem, ElSelect, ElOption, ElInputNumber, ElButton } from 'element-plus';
+import { ElDialog, ElForm, ElFormItem, ElSelect, ElOption, ElInputNumber, ElButton, ElInput } from 'element-plus';
 import AlgorithmSelector from './AlgorithmSelector.vue';
 
 const props = defineProps({

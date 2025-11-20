@@ -53,18 +53,20 @@
       </div>
 
       <div class="control-group" style="margin-top: 8px;">
-        <el-date-picker
-            v-model="filterDateRange"
-            type="datetimerange"
-            range-separator="-"
-            start-placeholder="开始时间"
-            end-placeholder="结束时间"
-            size="small"
-            style="width: 100%;"
-            :shortcuts="dateShortcuts"
-            @change="handleFilterChange"
-            :default-time="defaultTime"
-        />
+        <el-config-provider :locale="zhCn">
+          <el-date-picker
+              v-model="filterDateRange"
+              type="datetimerange"
+              range-separator="-"
+              start-placeholder="开始时间"
+              end-placeholder="结束时间"
+              size="small"
+              style="width: 100%;"
+              :shortcuts="dateShortcuts"
+              @change="handleFilterChange"
+              :default-time="defaultTime"
+          />
+        </el-config-provider>
       </div>
 
       <div class="divider"></div>
@@ -100,8 +102,9 @@
 
 <script setup>
 import { ref, reactive, watch, onUnmounted, computed } from 'vue';
-import { ElDialog, ElButton, ElButtonGroup, ElSelect, ElOption, ElDatePicker } from 'element-plus';
+import { ElDialog, ElButton, ElButtonGroup, ElSelect, ElOption, ElDatePicker, ElConfigProvider } from 'element-plus';
 import { FEATURE_DEFINITIONS } from '../../config/featureConfig.js';
+import zhCn from 'element-plus/es/locale/lang/zh-cn';
 
 const props = defineProps({
   visible: Boolean,
